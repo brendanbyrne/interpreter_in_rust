@@ -1,11 +1,10 @@
-#[derive(Debug)]
 pub struct Token {
-    type_: &'static str,
-    literal: String,
+    pub type_: &'static str,
+    pub literal: String,
 }
 
 impl Token {
-    fn new() -> Token {
+    pub fn new() -> Token {
 	Token{type_: ILLEGAL, literal: "Hello world".to_string()}
     }
 }
@@ -14,7 +13,7 @@ impl Token {
 // Token Types
 //
 macro_rules! DTT { // Declare a type of token
-    ($name:ident, $value:expr) => {const $name: &str = $value;};
+    ($name:ident, $value:expr) => {pub const $name: &str = $value;};
 }
 
 DTT!(ILLEGAL, "ILLEGAL");
@@ -24,7 +23,7 @@ DTT!(EOF, "EOF");
 DTT!(IDENT, "IDENT"); // add, foobar, x, y, ...
 DTT!(INT, "INT"); // 123456
 
-// // Operators
+// Operators
 DTT!(ASSIGN, "=");
 DTT!(PLUS, "+");
 
@@ -42,7 +41,7 @@ DTT!(FUNCTION, "FUNCTION");
 DTT!(LET, "LET");
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     
     #[test]
