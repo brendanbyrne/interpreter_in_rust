@@ -26,6 +26,8 @@ pub enum Token {
     SLASH,
     LT,
     GT,
+    EQ,
+    NOT_EQ,
 }
 
 fn keyword_check(literal: String) -> Option<Token> {

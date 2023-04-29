@@ -49,8 +49,15 @@ impl Lexer {
 	    self.read_char();
 	}
     }
+
+    fn peek_char(&self) -> char {
+	if self.read_position >= self.input.len() {
+	    return NUL;
+	}
+	return self.input[self.read_position];
+    }
     
-    pub fn read_char(&mut self) {
+    fn read_char(&mut self) {
 	if self.read_position >= self.input.len() {
 	    self.ch = NUL;
 	} else {
@@ -67,7 +74,12 @@ impl Lexer {
 	
 	match self.ch {
 	    '=' => {
-		tok = token::Token::ASSIGN;
+		if self.peek_char() == '=' {
+		    self.read_char();
+		    tok = token::Token::EQ;
+		} else {
+		    tok = token::Token::ASSIGN;
+		}
 	    }
 	    ';' => {
 		tok = token::Token::SEMICOLON;
@@ -94,7 +106,12 @@ impl Lexer {
 		tok = token::Token::MINUS;
 	    }
 	    '!' => {
-		tok = token::Token::BANG;
+		if self.peek_char() == '=' {
+		    self.read_char();
+		    tok = token::Token::NOT_EQ;
+		} else {
+		    tok = token::Token::BANG;
+		}
 	    }
 	    '*' => {
 		tok = token::Token::ASTERISK;
@@ -151,6 +168,9 @@ if (5 < 10) {
 } else {
   return false;
 }
+
+10 == 10;
+10 != 9;
 ".to_string();
 
 	use token::Token::*;
@@ -220,6 +240,14 @@ if (5 < 10) {
 	    FALSE,
 	    SEMICOLON,
 	    RBRACE,
+	    INT(vec!['1', '0']),
+	    EQ,
+	    INT(vec!['1', '0']),
+	    SEMICOLON,
+	    INT(vec!['1', '0']),
+	    NOT_EQ,
+	    INT(vec!['9']),
+	    SEMICOLON,
 	    EOF
 	];
 	    
