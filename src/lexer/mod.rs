@@ -9,6 +9,10 @@ pub struct Lexer {
 
 const NUL: char = '\u{0}';
 
+fn is_letter(ch: char) -> bool {
+    'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
 impl Lexer {
     fn new(input: Vec<char>) -> Self {
 	let mut lexer = Self{input, position: 0, read_position: 0, ch: NUL};
@@ -16,6 +20,14 @@ impl Lexer {
 	lexer
     }
 
+    fn read_identifier(&mut self) -> Vec<char> {
+	let position = self.position;
+	while is_letter(self.ch) {
+	    self.read_char();
+	}
+	self.input[position..self.position].to_vec()
+    }
+    
     pub fn read_char(&mut self) {
 	if self.read_position >= self.input.len() {
 	    self.ch = NUL;
@@ -57,7 +69,12 @@ impl Lexer {
 		tok = token::Token::EOF;
 	    }
 	    _ => {
-		todo!()
+		if is_letter(self.ch) {
+		    tok = token::Token::IDENT(self.read_identifier());
+		    return tok;
+		} else {
+		    tok = token::Token::ILLEGAL;
+		}
 	    }
 	}
 
@@ -72,16 +89,18 @@ mod tests {
     
     #[test]
     fn test_next_token() {
-	let input = "=+(){},;".to_string();
+	let input = "let five = 5;
+let ten = 10;
+let add = fn(x,y) {
+  x + y;
+};
 
-	let tokens = vec![token::Token::ASSIGN,
-			  token::Token::PLUS,
-			  token::Token::LPAREN,
-			  token::Token::RPAREN,
-			  token::Token::LBRACE,
-			  token::Token::RBRACE,
-			  token::Token::COMMA,
-			  token::Token::SEMICOLON];
+let result = add(five, ten);
+".to_string();
+
+	use token::*;
+	let tokens = vec![Token::LET];
+	    
 		
 	let mut lexer = Lexer::new(input.chars().collect());
 
