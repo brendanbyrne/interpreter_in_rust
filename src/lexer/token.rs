@@ -15,12 +15,28 @@ pub enum Token {
     RBRACE,
     FUNCTION,
     LET,
+    TRUE,
+    FALSE,
+    IF,
+    ELSE,
+    RETURN,
+    MINUS,
+    BANG,
+    ASTERISK,
+    SLASH,
+    LT,
+    GT,
 }
 
 fn keyword_check(literal: String) -> Option<Token> {
     match literal.as_str() {
 	"let" => Some(Token::LET),
 	"fn" => Some(Token::FUNCTION),
+	"true" => Some(Token::TRUE),
+	"false" => Some(Token::FALSE),
+	"if" => Some(Token::IF),
+	"else" => Some(Token::ELSE),
+	"return" => Some(Token::RETURN),
 	_ => None,
     }
 }

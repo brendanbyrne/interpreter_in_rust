@@ -13,7 +13,7 @@ fn is_letter(ch: char) -> bool {
     'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
-fn is_number(ch: char) -> bool {
+fn is_digit(ch: char) -> bool {
     '0' <= ch && ch <= '9'
 }
 
@@ -38,7 +38,7 @@ impl Lexer {
 
     fn read_int(&mut self) -> Vec<char> {
 	let position = self.position;
-	while is_number(self.ch) {
+	while is_digit(self.ch) {
 	    self.read_char();
 	}
 	self.input[position..self.position].to_vec()
@@ -90,6 +90,24 @@ impl Lexer {
 	    '}' => {
 		tok = token::Token::RBRACE;
 	    }
+	    '-' => {
+		tok = token::Token::MINUS;
+	    }
+	    '!' => {
+		tok = token::Token::BANG;
+	    }
+	    '*' => {
+		tok = token::Token::ASTERISK;
+	    }
+	    '/' => {
+		tok = token::Token::SLASH;
+	    }
+	    '<' => {
+		tok = token::Token::LT;
+	    }
+	    '>' => {
+		tok = token::Token::GT;
+	    }
 	    NUL => {
 		tok = token::Token::EOF;
 	    }
@@ -97,7 +115,7 @@ impl Lexer {
 		if is_letter(self.ch) {
 		    let literal = self.read_identifier();
 		    return token::lookup_identifier(literal);		    
-		} else if is_number(self.ch) {
+		} else if is_digit(self.ch) {
 		    let literal = self.read_int();
 		    return token::Token::INT(literal);
 		} else {
@@ -119,11 +137,20 @@ mod tests {
     fn test_next_token() {
 	let input = "let five = 5;
 let ten = 10;
-let add = fn(x,y) {
-  x + y;
+
+let add = fn(x, y) {
+x + y;
 };
 
 let result = add(five, ten);
+!-/*5;
+5 < 10 > 5;
+
+if (5 < 10) {
+    return true;
+} else {
+  return false;
+}
 ".to_string();
 
 	use token::Token::*;
@@ -164,6 +191,35 @@ let result = add(five, ten);
 	    IDENT(vec!['t', 'e', 'n']),
 	    RPAREN,
 	    SEMICOLON,
+	    BANG,
+	    MINUS,
+	    SLASH,
+	    ASTERISK,
+	    INT(vec!['5']),
+	    SEMICOLON,
+	    INT(vec!['5']),
+	    LT,
+	    INT(vec!['1', '0']),
+	    GT,
+	    INT(vec!['5']),
+	    SEMICOLON,
+	    IF,
+	    LPAREN,
+	    INT(vec!['5']),
+	    LT,
+	    INT(vec!['1', '0']),
+	    RPAREN,
+	    LBRACE,
+	    RETURN,
+	    TRUE,
+	    SEMICOLON,
+	    RBRACE,
+	    ELSE,
+	    LBRACE,
+	    RETURN,
+	    FALSE,
+	    SEMICOLON,
+	    RBRACE,
 	    EOF
 	];
 	    
