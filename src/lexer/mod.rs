@@ -1,4 +1,5 @@
 mod token;
+pub use token::Token;
 
 pub struct Lexer {
     input: Vec<char>,
@@ -22,7 +23,7 @@ fn is_whitespace(ch: char) -> bool {
 }
 
 impl Lexer {
-    fn new(input: Vec<char>) -> Self {
+    pub fn new(input: Vec<char>) -> Self {
 	let mut lexer = Self{input, position: 0, read_position: 0, ch: NUL};
 	lexer.read_char();
 	lexer
