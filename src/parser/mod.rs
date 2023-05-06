@@ -49,6 +49,7 @@ impl Parser {
     fn parse_statement(&mut self) -> Option<ast::Statement> {
 	match self.cur_token {
 	    Token::LET => self.parse_let_statement(),
+	    Token::RETURN => self.parse_return_statement(),
 	    _ => None,
 	}
     }
@@ -76,6 +77,17 @@ impl Parser {
 	Some(ast::Statement::Let{name, expression: ast::Expression::None})
     }
 
+    fn parse_return_statement(&mut self) -> Option<ast::Statement> {
+	self.next_token();
+
+
+	// TODO: Skipping to semicolon
+	while self.cur_token != Token::SEMICOLON {
+	    self.next_token();
+	}
+	Some(ast::Statement::Return(ast::Expression::None))
+    }
+    
     fn make_error(expected: &Token, found: &Token) -> String {
 	let msg = format!(
 	    "expected next token to be {:?}, got {:?} instead",
@@ -102,11 +114,11 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_parser() {
+    fn test_let_statements() {
 	let input = "
-let x 5;
-let = 10;
-let 838383;
+let x = 5;
+let y = 10;
+let foobar = 838383;
 ".to_string();
 
 	let lexer = Lexer::new(input.chars().collect());
@@ -120,10 +132,40 @@ let 838383;
 	let tests = vec!["x", "y", "foobar"];
 
 	for (s, t) in program.statements.iter().zip(tests.iter()) {
-	    test_let_statement(s, t.to_string());
+	    if let ast::Statement::Let{name, expression:_} = s {
+		assert_eq!(name, t);
+	    } else {
+		panic!("Should always be type ast::Statement::Let");
+	    }
 	}
     }
+    
+    #[test]
+    fn test_return_statements() {
+	let input = "
+return 5;
+return 10;
+return 993322;
+".to_string();
 
+	let lexer = Lexer::new(input.chars().collect());
+	let mut parser = Parser::new(lexer);
+	
+	let program = parser.parse_program().unwrap();
+	check_parser(&parser);
+	
+	assert_eq!(program.statements.len(), 3);
+	
+	let tests = vec!["x", "y", "foobar"];
+	
+	for (s, t) in program.statements.iter().zip(tests.iter()) {
+	    if let ast::Statement::Return(_) = s {
+	    } else {
+		panic!("Should always be type ast::Statement::Return");
+	    }
+	}
+    }
+    
     fn check_parser(parser: &Parser) {
 	if parser.errors.is_empty() {
 	    return;
@@ -132,14 +174,7 @@ let 838383;
 	for msg in &parser.errors {
 	    println!("{}", msg);
 	}
+	
 	panic!("parser had errors");
-    }
-    
-    fn test_let_statement(s: &ast::Statement, t: String) {
-	if let ast::Statement::Let{name, expression:_} = s {
-	    assert_eq!(name, &t);
-	} else {
-	    panic!("Should always be type ast::Statement::Let");
-	}
     }
 }

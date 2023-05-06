@@ -9,6 +9,7 @@ pub enum Statement {
 	name: String,
 	expression: Expression,
     },
+    Return(Expression),
 }
 
 pub struct Program {
