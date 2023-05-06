@@ -1,10 +1,11 @@
-#[derive(PartialEq)]
+#[derive(Clone)]
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub enum Token {
     ILLEGAL(char),
     EOF,
-    IDENT(Vec<char>),
-    INT(Vec<char>),
+    IDENT(String),
+    INT(String),
     ASSIGN,
     PLUS,
     COMMA,
@@ -31,7 +32,7 @@ pub enum Token {
     NOT_EQ,
 }
 
-fn keyword_check(literal: String) -> Option<Token> {
+fn keyword_check(literal: &String) -> Option<Token> {
     match literal.as_str() {
 	"let" => Some(Token::LET),
 	"fn" => Some(Token::FUNCTION),
@@ -44,8 +45,8 @@ fn keyword_check(literal: String) -> Option<Token> {
     }
 }
 
-pub fn lookup_identifier(literal: Vec<char>) -> Token {
-    match keyword_check(literal.iter().collect()) {
+pub fn lookup_identifier(literal: String) -> Token {
+    match keyword_check(&literal) {
 	Some(token) => token,
 	_ => Token::IDENT(literal)
     }

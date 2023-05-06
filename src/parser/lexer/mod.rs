@@ -29,20 +29,20 @@ impl Lexer {
 	lexer
     }
 
-    fn read_identifier(&mut self) -> Vec<char> {
+    fn read_identifier(&mut self) -> String {
 	let position = self.position;
 	while is_letter(self.ch) {
 	    self.read_char();
 	}
-	self.input[position..self.position].to_vec()
+	self.input[position..self.position].to_vec().iter().collect()
     }
 
-    fn read_int(&mut self) -> Vec<char> {
+    fn read_int(&mut self) -> String {
 	let position = self.position;
 	while is_digit(self.ch) {
 	    self.read_char();
 	}
-	self.input[position..self.position].to_vec()
+	self.input[position..self.position].to_vec().iter().collect()
     }
 
     fn skip_whitespace(&mut self) {
@@ -68,8 +68,8 @@ impl Lexer {
 	self.read_position += 1;
     }
 
-    pub fn next_token(&mut self) -> token::Token {
-	let tok: token::Token;
+    pub fn next_token(&mut self) -> Token {
+	let tok: Token;
 
 	self.skip_whitespace();
 	
@@ -77,57 +77,57 @@ impl Lexer {
 	    '=' => {
 		if self.peek_char() == '=' {
 		    self.read_char();
-		    tok = token::Token::EQ;
+		    tok = Token::EQ;
 		} else {
-		    tok = token::Token::ASSIGN;
+		    tok = Token::ASSIGN;
 		}
 	    }
 	    ';' => {
-		tok = token::Token::SEMICOLON;
+		tok = Token::SEMICOLON;
 	    }
 	    '(' => {
-		tok = token::Token::LPAREN;
+		tok = Token::LPAREN;
 	    }
 	    ')' => {
-		tok = token::Token::RPAREN;
+		tok = Token::RPAREN;
 	    }
 	    ',' => {
-		tok = token::Token::COMMA;
+		tok = Token::COMMA;
 	    }
 	    '+' => {
-		tok = token::Token::PLUS;
+		tok = Token::PLUS;
 	    }
 	    '{' => {
-		tok = token::Token::LBRACE;
+		tok = Token::LBRACE;
 	    }
 	    '}' => {
-		tok = token::Token::RBRACE;
+		tok = Token::RBRACE;
 	    }
 	    '-' => {
-		tok = token::Token::MINUS;
+		tok = Token::MINUS;
 	    }
 	    '!' => {
 		if self.peek_char() == '=' {
 		    self.read_char();
-		    tok = token::Token::NOT_EQ;
+		    tok = Token::NOT_EQ;
 		} else {
-		    tok = token::Token::BANG;
+		    tok = Token::BANG;
 		}
 	    }
 	    '*' => {
-		tok = token::Token::ASTERISK;
+		tok = Token::ASTERISK;
 	    }
 	    '/' => {
-		tok = token::Token::SLASH;
+		tok = Token::SLASH;
 	    }
 	    '<' => {
-		tok = token::Token::LT;
+		tok = Token::LT;
 	    }
 	    '>' => {
-		tok = token::Token::GT;
+		tok = Token::GT;
 	    }
 	    NUL => {
-		tok = token::Token::EOF;
+		tok = Token::EOF;
 	    }
 	    _ => {
 		if is_letter(self.ch) {
@@ -135,9 +135,9 @@ impl Lexer {
 		    return token::lookup_identifier(literal);		    
 		} else if is_digit(self.ch) {
 		    let literal = self.read_int();
-		    return token::Token::INT(literal);
+		    return Token::INT(literal);
 		} else {
-		    tok = token::Token::ILLEGAL(self.ch);
+		    tok = Token::ILLEGAL(self.ch);
 		}
 	    }
 	}
@@ -177,58 +177,58 @@ if (5 < 10) {
 	use token::Token::*;
 	let tokens = vec![
 	    LET,
-	    IDENT(vec!['f', 'i', 'v', 'e']),
+	    IDENT("five".to_string()),
 	    ASSIGN,
-	    INT(vec!['5']),
+	    INT("5".to_string()),
 	    SEMICOLON,
 	    LET,
-	    IDENT(vec!['t', 'e', 'n']),
+	    IDENT("ten".to_string()),
 	    ASSIGN,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    SEMICOLON,
 	    LET,
-	    IDENT(vec!['a', 'd', 'd']),
+	    IDENT("add".to_string()),
 	    ASSIGN,
 	    FUNCTION,
 	    LPAREN,
-	    IDENT(vec!['x']),
+	    IDENT("x".to_string()),
 	    COMMA,
-	    IDENT(vec!['y']),
+	    IDENT("y".to_string()),
 	    RPAREN,
 	    LBRACE,
-	    IDENT(vec!['x']),
+	    IDENT("x".to_string()),
 	    PLUS,
-	    IDENT(vec!['y']),
+	    IDENT("y".to_string()),
 	    SEMICOLON,
 	    RBRACE,
 	    SEMICOLON,
 	    LET,
-	    IDENT(vec!['r', 'e', 's', 'u', 'l', 't']),
+	    IDENT("result".to_string()),
 	    ASSIGN,
-	    IDENT(vec!['a', 'd', 'd']),
+	    IDENT("add".to_string()),
 	    LPAREN,
-	    IDENT(vec!['f', 'i', 'v', 'e']),
+	    IDENT("five".to_string()),
 	    COMMA,
-	    IDENT(vec!['t', 'e', 'n']),
+	    IDENT("ten".to_string()),
 	    RPAREN,
 	    SEMICOLON,
 	    BANG,
 	    MINUS,
 	    SLASH,
 	    ASTERISK,
-	    INT(vec!['5']),
+	    INT("5".to_string()),
 	    SEMICOLON,
-	    INT(vec!['5']),
+	    INT("5".to_string()),
 	    LT,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    GT,
-	    INT(vec!['5']),
+	    INT("5".to_string()),
 	    SEMICOLON,
 	    IF,
 	    LPAREN,
-	    INT(vec!['5']),
+	    INT("5".to_string()),
 	    LT,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    RPAREN,
 	    LBRACE,
 	    RETURN,
@@ -241,18 +241,17 @@ if (5 < 10) {
 	    FALSE,
 	    SEMICOLON,
 	    RBRACE,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    EQ,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    SEMICOLON,
-	    INT(vec!['1', '0']),
+	    INT("10".to_string()),
 	    NOT_EQ,
-	    INT(vec!['9']),
+	    INT("9".to_string()),
 	    SEMICOLON,
 	    EOF
 	];
-	    
-		
+	
 	let mut lexer = Lexer::new(input.chars().collect());
 
 	for expected_token in tokens {
