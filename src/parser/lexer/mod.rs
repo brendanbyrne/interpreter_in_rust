@@ -152,7 +152,7 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_next_token() {
+    fn next_token() {
 	let input = "let five = 5;
 let ten = 10;
 
