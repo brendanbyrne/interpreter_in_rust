@@ -73,29 +73,29 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Option<ast::StatementType> {
         match self.cur_token {
-            Token::LET => self.parse_let_statement(),
-            Token::RETURN => self.parse_return_statement(),
+            Token::Let => self.parse_let_statement(),
+            Token::Return => self.parse_return_statement(),
             _ => self.parse_expression_statement(),
         }
     }
 
     fn parse_let_statement(&mut self) -> Option<ast::StatementType> {
-        self.next_token(); // drop LET
+        self.next_token(); // drop Let
 
-        let name = if let Token::IDENT(name) = self.cur_token.clone() {
+        let name = if let Token::Ident(name) = self.cur_token.clone() {
             name
         } else {
-            let msg = Parser::make_error(&Token::IDENT("<name>".to_string()), &self.cur_token);
+            let msg = Parser::make_error(&Token::Ident("<name>".to_string()), &self.cur_token);
             self.errors.push(msg);
             return None;
         };
 
-        if !self.expect_peek(&Token::ASSIGN) {
+        if !self.expect_peek(&Token::Assign) {
             return None;
         }
 
         // TODO: Skipping to semicolon
-        while self.cur_token != Token::SEMICOLON {
+        while self.cur_token != Token::Semicolon {
             self.next_token();
         }
 
@@ -106,10 +106,10 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Option<ast::StatementType> {
-        self.next_token(); // drop RETURN
+        self.next_token(); // drop Return
 
         // TODO: Skipping to semicolon
-        while self.cur_token != Token::SEMICOLON {
+        while self.cur_token != Token::Semicolon {
             self.next_token();
         }
         Some(ast::StatementType::Return(ast::ExpressionType::Empty))
@@ -118,7 +118,7 @@ impl Parser {
     fn parse_expression_statement(&mut self) -> Option<ast::StatementType> {
         let expression = self.parse_expression(Ordering::Lowest)?;
 
-        if self.peek_token == Token::SEMICOLON {
+        if self.peek_token == Token::Semicolon {
             self.next_token();
         }
 
@@ -132,12 +132,12 @@ impl Parser {
 
     fn prefix_parse(&mut self) -> Option<ast::ExpressionType> {
         match &self.cur_token {
-            Token::IDENT(name) => {
+            Token::Ident(name) => {
                 return Some(ast::ExpressionType::Identifier(name.clone()));
             }
-            Token::INT(value) => return self.parse_prefix_int(value.to_string()),
-            Token::BANG => return self.parse_prefix_expression(ast::PrefixOperator::Not),
-            Token::MINUS => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
+            Token::Int(value) => return self.parse_prefix_int(value.to_string()),
+            Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
+            Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
             _ => {
                 return None;
             }
@@ -305,7 +305,7 @@ return 993322;
 
             assert_eq!(program.statements.len(), 1);
 
-            // TODO: Is there a way to do this without nexting `if let`s like this?
+            // TODO: Is there a way to do this without nesting `if let`s like this?
             if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
                 if let ast::ExpressionType::Prefix(operator, nested_expression) = expression {
                     assert_eq!(operator, test_case.operator);
@@ -323,6 +323,54 @@ return 993322;
             }
         }
     }
+
+    // #[test]
+    // fn infix_expression() {
+    //     struct TestCase<'a> {
+    //         input: &'a str,
+    //         lhs: i128,
+    //         rhs: i28,
+    //         operator: ast::InfixOperator,
+    //     }
+
+    //     let test_cases = vec![
+    //         TestCase {
+    //             input: "!5;",
+    //             operator: ast::PrefixOperator::Not,
+    //             value: 5,
+    //         },
+    //         TestCase {
+    //             input: "-15;",
+    //             operator: ast::PrefixOperator::Negate,
+    //             value: 15,
+    //         },
+    //     ];
+
+    //     for test_case in test_cases {
+    //         let mut parser = make_parser(test_case.input);
+    //         let mut program = parser.parse_program().unwrap();
+    //         check_parser(&parser);
+
+    //         assert_eq!(program.statements.len(), 1);
+
+    //         // TODO: Is there a way to do this without nexting `if let`s like this?
+    //         if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
+    //             if let ast::ExpressionType::Prefix(operator, nested_expression) = expression {
+    //                 assert_eq!(operator, test_case.operator);
+
+    //                 if let ast::ExpressionType::Int(value) = *nested_expression {
+    //                     assert_eq!(value, test_case.value);
+    //                 } else {
+    //                     panic!("Expected type ast::ExpressionType::Int");
+    //                 }
+    //             } else {
+    //                 panic!("Expected type ast::ExpressionType::Prefix");
+    //             }
+    //         } else {
+    //             panic!("Expected type ast::StatementType::Expression");
+    //         }
+    //     }
+    // }
 
     fn make_parser(input: &str) -> Parser {
         let lexer = Lexer::new(input.chars().collect());

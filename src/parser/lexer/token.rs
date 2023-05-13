@@ -1,53 +1,50 @@
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
-    ILLEGAL(char),
+    Illegal(char),
     EOF,
-    IDENT(String),
-    INT(String),
-    ASSIGN,
-    PLUS,
-    COMMA,
-    SEMICOLON,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
-    FUNCTION,
-    LET,
-    TRUE,
-    FALSE,
-    IF,
-    ELSE,
-    RETURN,
-    MINUS,
-    BANG,
-    ASTERISK,
-    SLASH,
-    LT,
-    GT,
-    EQ,
-    #[allow(non_camel_case_types)]
-    NOT_EQ,
+    Ident(String),
+    Int(String),
+    Assign,
+    Plus,
+    Comma,
+    Semicolon,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
+    Function,
+    Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
+    Minus,
+    Bang,
+    Asterisk,
+    Slash,
+    LessThan,
+    GreaterThan,
+    Equal,
+    NotEqual,
 }
 
 fn keyword_check(literal: &String) -> Option<Token> {
     match literal.as_str() {
-	"let" => Some(Token::LET),
-	"fn" => Some(Token::FUNCTION),
-	"true" => Some(Token::TRUE),
-	"false" => Some(Token::FALSE),
-	"if" => Some(Token::IF),
-	"else" => Some(Token::ELSE),
-	"return" => Some(Token::RETURN),
-	_ => None,
+        "let" => Some(Token::Let),
+        "fn" => Some(Token::Function),
+        "true" => Some(Token::True),
+        "false" => Some(Token::False),
+        "if" => Some(Token::If),
+        "else" => Some(Token::Else),
+        "return" => Some(Token::Return),
+        _ => None,
     }
 }
 
 pub fn lookup_identifier(literal: String) -> Token {
-    match keyword_check(&literal) {
-	Some(token) => token,
-	_ => Token::IDENT(literal)
+    if let Some(token) = keyword_check(&literal) {
+        return token;
     }
+    Token::Ident(literal)
 }
