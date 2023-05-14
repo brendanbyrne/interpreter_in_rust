@@ -56,7 +56,7 @@ impl Parser {
         self.peek_token = self.lexer.next_token();
     }
 
-    fn parse_statement(&mut self) -> Option<ast::StatementType> {
+    fn parse_statement(&mut self) -> Option<ast::Statement> {
         match self.cur_token {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
@@ -64,7 +64,7 @@ impl Parser {
         }
     }
 
-    fn parse_let_statement(&mut self) -> Option<ast::StatementType> {
+    fn parse_let_statement(&mut self) -> Option<ast::Statement> {
         self.next_token(); // drop Let
 
         let name = if let Token::Ident(name) = self.cur_token.clone() {
@@ -84,30 +84,30 @@ impl Parser {
             self.next_token();
         }
 
-        Some(ast::StatementType::Let(name, ast::ExpressionType::Empty))
+        Some(ast::Statement::Let(name, ast::Expression::Empty))
     }
 
-    fn parse_return_statement(&mut self) -> Option<ast::StatementType> {
+    fn parse_return_statement(&mut self) -> Option<ast::Statement> {
         self.next_token(); // drop Return
 
         // TODO: Skipping to semicolon
         while self.cur_token != Token::Semicolon {
             self.next_token();
         }
-        Some(ast::StatementType::Return(ast::ExpressionType::Empty))
+        Some(ast::Statement::Return(ast::Expression::Empty))
     }
 
-    fn parse_expression_statement(&mut self) -> Option<ast::StatementType> {
+    fn parse_expression_statement(&mut self) -> Option<ast::Statement> {
         let expression = self.parse_expression(Ordering::Lowest)?;
 
         if self.peek_token == Token::Semicolon {
             self.next_token();
         }
 
-        Some(ast::StatementType::Expression(expression))
+        Some(ast::Statement::Expression(expression))
     }
 
-    fn parse_expression(&mut self, ordering: Ordering) -> Option<ast::ExpressionType> {
+    fn parse_expression(&mut self, ordering: Ordering) -> Option<ast::Expression> {
         let mut expression = self.parse_prefix()?;
 
         while self.peek_token != Token::Semicolon && ordering < Parser::precedence(&self.peek_token)
@@ -123,21 +123,21 @@ impl Parser {
         return Some(expression);
     }
 
-    fn parse_prefix(&mut self) -> Option<ast::ExpressionType> {
+    fn parse_prefix(&mut self) -> Option<ast::Expression> {
         match &self.cur_token {
-            Token::Ident(name) => return Some(ast::ExpressionType::Identifier(name.clone())),
+            Token::Ident(name) => return Some(ast::Expression::Identifier(name.clone())),
             Token::Int(value) => return self.parse_prefix_int(value.to_string()),
             Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
             Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
-            Token::True => return Some(ast::ExpressionType::Boolean(true)),
-            Token::False => return Some(ast::ExpressionType::Boolean(false)),
+            Token::True => return Some(ast::Expression::Boolean(true)),
+            Token::False => return Some(ast::Expression::Boolean(false)),
             _ => return None,
         };
     }
 
-    fn parse_prefix_int(&mut self, input: String) -> Option<ast::ExpressionType> {
+    fn parse_prefix_int(&mut self, input: String) -> Option<ast::Expression> {
         if let Ok(value) = input.parse::<i128>() {
-            return Some(ast::ExpressionType::Int(value));
+            return Some(ast::Expression::Int(value));
         } else {
             self.errors
                 .push(format!("Could not parse '{}' as an integer", input));
@@ -145,22 +145,22 @@ impl Parser {
         }
     }
 
-    fn parse_prefix_expression(&mut self, op: ast::PrefixOperator) -> Option<ast::ExpressionType> {
+    fn parse_prefix_expression(&mut self, op: ast::PrefixOperator) -> Option<ast::Expression> {
         self.next_token(); // drop operator
 
         let expression = self.parse_expression(Ordering::Prefix)?;
-        Some(ast::ExpressionType::Prefix(op, Box::new(expression)))
+        Some(ast::Expression::Prefix(op, Box::new(expression)))
     }
 
     fn parse_infix_expression(
         &mut self,
-        lhs: ast::ExpressionType,
+        lhs: ast::Expression,
         op: ast::InfixOperator,
-    ) -> Option<ast::ExpressionType> {
+    ) -> Option<ast::Expression> {
         let precedence = Parser::precedence(&self.cur_token);
         self.next_token(); // Drops operator
         let rhs = self.parse_expression(precedence)?;
-        Some(ast::ExpressionType::Infix(Box::new(lhs), op, Box::new(rhs)))
+        Some(ast::Expression::Infix(Box::new(lhs), op, Box::new(rhs)))
     }
 
     fn expect_peek(&mut self, token: &Token) -> bool {
@@ -234,10 +234,10 @@ let foobar = 838383;
         let tests = vec!["x", "y", "foobar"];
 
         for (s, t) in program.statements.iter().zip(tests.iter()) {
-            if let ast::StatementType::Let(name, _) = s {
+            if let ast::Statement::Let(name, _) = s {
                 assert_eq!(name, t);
             } else {
-                panic!("Expected type ast::StatementType::Let");
+                panic!("Expected type ast::Statement::Let");
             }
         }
     }
@@ -257,9 +257,9 @@ return 993322;
         assert_eq!(program.statements.len(), 3);
 
         for s in program.statements {
-            if let ast::StatementType::Return(_) = s {
+            if let ast::Statement::Return(_) = s {
             } else {
-                panic!("Expected type ast::StatementType::Return");
+                panic!("Expected type ast::Statement::Return");
             }
         }
     }
@@ -273,14 +273,14 @@ return 993322;
 
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-            if let ast::ExpressionType::Identifier(name) = expression {
+        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+            if let ast::Expression::Identifier(name) = expression {
                 assert_eq!("foobar", name);
             } else {
-                panic!("Expected type ast::ExpressionType::Indentifier");
+                panic!("Expected type ast::Expression::Indentifier");
             }
         } else {
-            panic!("Expected type ast::StatementType::Expression");
+            panic!("Expected type ast::Statement::Expression");
         }
     }
 
@@ -293,14 +293,14 @@ return 993322;
 
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-            if let ast::ExpressionType::Int(value) = expression {
+        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+            if let ast::Expression::Int(value) = expression {
                 assert_eq!(5, value);
             } else {
-                panic!("Expected type ast::ExpressionType::Indentifier");
+                panic!("Expected type ast::Expression::Indentifier");
             }
         } else {
-            panic!("Expected type ast::StatementType::Expression");
+            panic!("Expected type ast::Statement::Expression");
         }
     }
 
@@ -333,20 +333,20 @@ return 993322;
             assert_eq!(program.statements.len(), 1);
 
             // TODO: Is there a way to do this without nesting `if let`s like this?
-            if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-                if let ast::ExpressionType::Prefix(op, nested_expression) = expression {
+            if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+                if let ast::Expression::Prefix(op, nested_expression) = expression {
                     assert_eq!(op, test_case.op);
 
-                    if let ast::ExpressionType::Int(value) = *nested_expression {
+                    if let ast::Expression::Int(value) = *nested_expression {
                         assert_eq!(value, test_case.value);
                     } else {
-                        panic!("Expected type ast::ExpressionType::Int");
+                        panic!("Expected type ast::Expression::Int");
                     }
                 } else {
-                    panic!("Expected type ast::ExpressionType::Prefix");
+                    panic!("Expected type ast::Expression::Prefix");
                 }
             } else {
-                panic!("Expected type ast::StatementType::Expression");
+                panic!("Expected type ast::Statement::Expression");
             }
         }
     }
@@ -419,26 +419,26 @@ return 993322;
             assert_eq!(program.statements.len(), 1);
 
             // TODO: Is there a way to do this without nesting `if let`s like this?
-            if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-                if let ast::ExpressionType::Infix(lhs, op, rhs) = expression {
+            if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+                if let ast::Expression::Infix(lhs, op, rhs) = expression {
                     assert_eq!(op, test_case.op);
 
-                    if let ast::ExpressionType::Int(value) = *lhs {
+                    if let ast::Expression::Int(value) = *lhs {
                         assert_eq!(value, test_case.lhs);
                     } else {
-                        panic!("Expected type ast::ExpressionType::Int");
+                        panic!("Expected type ast::Expression::Int");
                     }
 
-                    if let ast::ExpressionType::Int(value) = *rhs {
+                    if let ast::Expression::Int(value) = *rhs {
                         assert_eq!(value, test_case.rhs);
                     } else {
-                        panic!("Expected type ast::ExpressionType::Int");
+                        panic!("Expected type ast::Expression::Int");
                     }
                 } else {
-                    panic!("Expected type ast::ExpressionType::Infix");
+                    panic!("Expected type ast::Expression::Infix");
                 }
             } else {
-                panic!("Expected type ast::StatementType::Expression");
+                panic!("Expected type ast::Statement::Expression");
             }
         }
     }

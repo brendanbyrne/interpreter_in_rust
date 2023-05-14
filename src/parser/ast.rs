@@ -45,18 +45,18 @@ impl ToString for PrefixOperator {
 }
 
 #[derive(Debug)]
-pub enum ExpressionType {
+pub enum Expression {
     Empty,
     Identifier(String),
     Int(i128),
-    Prefix(PrefixOperator, Box<ExpressionType>),
-    Infix(Box<ExpressionType>, InfixOperator, Box<ExpressionType>),
+    Prefix(PrefixOperator, Box<Expression>),
+    Infix(Box<Expression>, InfixOperator, Box<Expression>),
     Boolean(bool),
 }
 
-impl ToString for ExpressionType {
+impl ToString for Expression {
     fn to_string(&self) -> String {
-        use ExpressionType::*;
+        use Expression::*;
         let string = match self {
             Empty => "".to_string(),
             Identifier(name) => name.clone(),
@@ -79,15 +79,15 @@ impl ToString for ExpressionType {
 }
 
 #[derive(Debug)]
-pub enum StatementType {
-    Let(String, ExpressionType),
-    Return(ExpressionType),
-    Expression(ExpressionType),
+pub enum Statement {
+    Let(String, Expression),
+    Return(Expression),
+    Expression(Expression),
 }
 
-impl ToString for StatementType {
+impl ToString for Statement {
     fn to_string(&self) -> String {
-        use StatementType::*;
+        use Statement::*;
         let mut statement = match self {
             Let(name, expression) => {
                 format!("let {} = {}", name, expression.to_string())
@@ -105,7 +105,7 @@ impl ToString for StatementType {
 }
 
 pub struct Program {
-    pub statements: Vec<StatementType>,
+    pub statements: Vec<Statement>,
 }
 
 impl Program {
@@ -133,10 +133,9 @@ mod tests {
     #[test]
     fn to_string() {
         let mut program = Program::new();
-        program.statements.push(StatementType::Let(
-            "foo".to_string(),
-            ExpressionType::Int(5),
-        ));
+        program
+            .statements
+            .push(Statement::Let("foo".to_string(), Expression::Int(5)));
 
         assert_eq!("let foo = 5;".to_string(), program.to_string());
     }
