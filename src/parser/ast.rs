@@ -10,6 +10,23 @@ pub enum InfixOperator {
     NotEqual,
 }
 
+impl ToString for InfixOperator {
+    fn to_string(&self) -> String {
+        use InfixOperator::*;
+        let value = match self {
+            Plus => "+",
+            Minus => "-",
+            Star => "*",
+            Slash => "/",
+            LessThan => "<",
+            GreaterThan => ">",
+            Equal => "==",
+            NotEqual => "!=",
+        };
+        value.to_string()
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum PrefixOperator {
     Negate,
@@ -19,14 +36,11 @@ pub enum PrefixOperator {
 impl ToString for PrefixOperator {
     fn to_string(&self) -> String {
         use PrefixOperator::*;
-        match self {
-            Negate => {
-                return "-".to_string();
-            }
-            Not => {
-                return "!".to_string();
-            }
-        }
+        let value = match self {
+            Negate => "-",
+            Not => "!",
+        };
+        value.to_string()
     }
 }
 
@@ -36,34 +50,35 @@ pub enum ExpressionType {
     Identifier(String),
     Int(i128),
     Prefix(PrefixOperator, Box<ExpressionType>),
+    Infix(Box<ExpressionType>, InfixOperator, Box<ExpressionType>),
 }
 
 impl ToString for ExpressionType {
     fn to_string(&self) -> String {
         use ExpressionType::*;
-        match self {
-            Empty => {
-                return "".to_string();
+        let string = match self {
+            Empty => "".to_string(),
+            Identifier(name) => name.clone(),
+            Int(value) => format!("{}", value),
+            Prefix(op, expression) => {
+                format!("({}{})", op.to_string(), (*expression).to_string())
             }
-            Identifier(name) => {
-                return name.clone();
+            Infix(lhs, op, rhs) => {
+                format!(
+                    "({} {} {})",
+                    (*lhs).to_string(),
+                    op.to_string(),
+                    (*rhs).to_string()
+                )
             }
-            Int(value) => {
-                return format!("{}", value);
-            }
-            Prefix(operator, expression) => {
-                return format!("({}{})", operator.to_string(), (*expression).to_string());
-            }
-        }
+        };
+        string
     }
 }
 
 #[derive(Debug)]
 pub enum StatementType {
-    Let {
-        name: String,
-        expression: ExpressionType,
-    },
+    Let(String, ExpressionType),
     Return(ExpressionType),
     Expression(ExpressionType),
 }
@@ -72,7 +87,7 @@ impl ToString for StatementType {
     fn to_string(&self) -> String {
         use StatementType::*;
         let mut statement = match self {
-            Let { name, expression } => {
+            Let(name, expression) => {
                 format!("let {} = {}", name, expression.to_string())
             }
             Return(expression) => {
@@ -116,10 +131,10 @@ mod tests {
     #[test]
     fn to_string() {
         let mut program = Program::new();
-        program.statements.push(StatementType::Let {
-            name: "foo".to_string(),
-            expression: ExpressionType::Int(5),
-        });
+        program.statements.push(StatementType::Let(
+            "foo".to_string(),
+            ExpressionType::Int(5),
+        ));
 
         assert_eq!("let foo = 5;".to_string(), program.to_string());
     }

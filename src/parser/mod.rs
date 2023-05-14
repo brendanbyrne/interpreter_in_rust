@@ -5,35 +5,20 @@ pub mod ast;
 
 pub struct Parser {
     lexer: Lexer,
-
     cur_token: Token,
     peek_token: Token,
-
     errors: Vec<String>,
 }
 
+#[derive(PartialEq, PartialOrd)]
 enum Ordering {
-    Lowest = 0,
-    Equals = 1,      // ==
-    LessGreater = 2, // > or <
-    Sum = 3,         // +
-    Product = 4,     // *
-    Prefix = 5,      // -x or !x
-    Call = 6,        // x()
-}
-
-trait InfixParse {
-    fn infix_parse(&self, expression: ast::ExpressionType) -> ast::ExpressionType;
-}
-
-impl InfixParse for Token {
-    fn infix_parse(&self, expression: ast::ExpressionType) -> ast::ExpressionType {
-        match self {
-            _ => {
-                return ast::ExpressionType::Empty;
-            }
-        };
-    }
+    Lowest,
+    Equals,      // == or !=
+    LessGreater, // > or <
+    PlusMinus,   // + or -
+    StarSlash,   // * or /
+    Prefix,      // -x or !x
+    Call,        // x()
 }
 
 impl Parser {
@@ -99,10 +84,7 @@ impl Parser {
             self.next_token();
         }
 
-        Some(ast::StatementType::Let {
-            name,
-            expression: ast::ExpressionType::Empty,
-        })
+        Some(ast::StatementType::Let(name, ast::ExpressionType::Empty))
     }
 
     fn parse_return_statement(&mut self) -> Option<ast::StatementType> {
@@ -126,21 +108,28 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, ordering: Ordering) -> Option<ast::ExpressionType> {
-        let left_exp = self.prefix_parse()?;
-        Some(left_exp)
+        let mut expression = self.parse_prefix()?;
+
+        while self.peek_token != Token::Semicolon && ordering < Parser::precedence(&self.peek_token)
+        {
+            if let Some(op) = Parser::get_infix_operator(&self.peek_token) {
+                self.next_token(); // Move to infix operator
+                expression = self.parse_infix_expression(expression, op)?;
+            } else {
+                return Some(expression);
+            }
+        }
+
+        return Some(expression);
     }
 
-    fn prefix_parse(&mut self) -> Option<ast::ExpressionType> {
+    fn parse_prefix(&mut self) -> Option<ast::ExpressionType> {
         match &self.cur_token {
-            Token::Ident(name) => {
-                return Some(ast::ExpressionType::Identifier(name.clone()));
-            }
+            Token::Ident(name) => return Some(ast::ExpressionType::Identifier(name.clone())),
             Token::Int(value) => return self.parse_prefix_int(value.to_string()),
             Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
             Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
-            _ => {
-                return None;
-            }
+            _ => return None,
         };
     }
 
@@ -161,12 +150,15 @@ impl Parser {
         Some(ast::ExpressionType::Prefix(op, Box::new(expression)))
     }
 
-    fn make_error(expected: &Token, found: &Token) -> String {
-        let msg = format!(
-            "expected next token to be {:?}, got {:?} instead",
-            expected, found
-        );
-        msg
+    fn parse_infix_expression(
+        &mut self,
+        lhs: ast::ExpressionType,
+        op: ast::InfixOperator,
+    ) -> Option<ast::ExpressionType> {
+        let precedence = Parser::precedence(&self.cur_token);
+        self.next_token(); // Drops operator
+        let rhs = self.parse_expression(precedence)?;
+        Some(ast::ExpressionType::Infix(Box::new(lhs), op, Box::new(rhs)))
     }
 
     fn expect_peek(&mut self, token: &Token) -> bool {
@@ -178,6 +170,43 @@ impl Parser {
             self.errors.push(msg);
             return false;
         }
+    }
+
+    fn make_error(expected: &Token, found: &Token) -> String {
+        let msg = format!(
+            "expected next token to be {:?}, got {:?} instead",
+            expected, found
+        );
+        msg
+    }
+
+    fn get_infix_operator(token: &Token) -> Option<ast::InfixOperator> {
+        match token {
+            Token::Equal => return Some(ast::InfixOperator::Equal),
+            Token::NotEqual => return Some(ast::InfixOperator::NotEqual),
+            Token::LessThan => return Some(ast::InfixOperator::LessThan),
+            Token::GreaterThan => return Some(ast::InfixOperator::GreaterThan),
+            Token::Plus => return Some(ast::InfixOperator::Plus),
+            Token::Minus => return Some(ast::InfixOperator::Minus),
+            Token::Asterisk => return Some(ast::InfixOperator::Star),
+            Token::Slash => return Some(ast::InfixOperator::Slash),
+            _ => return None,
+        };
+    }
+
+    fn precedence(token: &Token) -> Ordering {
+        let p = match token {
+            Token::Equal => Ordering::Equals,
+            Token::NotEqual => Ordering::Equals,
+            Token::LessThan => Ordering::LessGreater,
+            Token::GreaterThan => Ordering::LessGreater,
+            Token::Plus => Ordering::PlusMinus,
+            Token::Minus => Ordering::PlusMinus,
+            Token::Asterisk => Ordering::StarSlash,
+            Token::Slash => Ordering::StarSlash,
+            _ => Ordering::Lowest,
+        };
+        p
     }
 }
 
@@ -203,11 +232,7 @@ let foobar = 838383;
         let tests = vec!["x", "y", "foobar"];
 
         for (s, t) in program.statements.iter().zip(tests.iter()) {
-            if let ast::StatementType::Let {
-                name,
-                expression: _,
-            } = s
-            {
+            if let ast::StatementType::Let(name, _) = s {
                 assert_eq!(name, t);
             } else {
                 panic!("Expected type ast::StatementType::Let");
@@ -281,19 +306,19 @@ return 993322;
     fn prefix_expression() {
         struct TestCase<'a> {
             input: &'a str,
-            operator: ast::PrefixOperator,
+            op: ast::PrefixOperator,
             value: i128,
         }
 
         let test_cases = vec![
             TestCase {
                 input: "!5;",
-                operator: ast::PrefixOperator::Not,
+                op: ast::PrefixOperator::Not,
                 value: 5,
             },
             TestCase {
                 input: "-15;",
-                operator: ast::PrefixOperator::Negate,
+                op: ast::PrefixOperator::Negate,
                 value: 15,
             },
         ];
@@ -307,8 +332,8 @@ return 993322;
 
             // TODO: Is there a way to do this without nesting `if let`s like this?
             if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-                if let ast::ExpressionType::Prefix(operator, nested_expression) = expression {
-                    assert_eq!(operator, test_case.operator);
+                if let ast::ExpressionType::Prefix(op, nested_expression) = expression {
+                    assert_eq!(op, test_case.op);
 
                     if let ast::ExpressionType::Int(value) = *nested_expression {
                         assert_eq!(value, test_case.value);
@@ -324,53 +349,173 @@ return 993322;
         }
     }
 
-    // #[test]
-    // fn infix_expression() {
-    //     struct TestCase<'a> {
-    //         input: &'a str,
-    //         lhs: i128,
-    //         rhs: i28,
-    //         operator: ast::InfixOperator,
-    //     }
+    #[test]
+    fn infix_expression() {
+        struct TestCase<'a> {
+            input: &'a str,
+            lhs: i128,
+            rhs: i128,
+            op: ast::InfixOperator,
+        }
 
-    //     let test_cases = vec![
-    //         TestCase {
-    //             input: "!5;",
-    //             operator: ast::PrefixOperator::Not,
-    //             value: 5,
-    //         },
-    //         TestCase {
-    //             input: "-15;",
-    //             operator: ast::PrefixOperator::Negate,
-    //             value: 15,
-    //         },
-    //     ];
+        let test_cases = vec![
+            TestCase {
+                input: "5 + 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::Plus,
+            },
+            TestCase {
+                input: "5 - 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::Minus,
+            },
+            TestCase {
+                input: "5 * 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::Star,
+            },
+            TestCase {
+                input: "5 / 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::Slash,
+            },
+            TestCase {
+                input: "5 > 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::GreaterThan,
+            },
+            TestCase {
+                input: "5 < 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::LessThan,
+            },
+            TestCase {
+                input: "5 == 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::Equal,
+            },
+            TestCase {
+                input: "5 != 5",
+                lhs: 5,
+                rhs: 5,
+                op: ast::InfixOperator::NotEqual,
+            },
+        ];
 
-    //     for test_case in test_cases {
-    //         let mut parser = make_parser(test_case.input);
-    //         let mut program = parser.parse_program().unwrap();
-    //         check_parser(&parser);
+        for test_case in test_cases {
+            let mut parser = make_parser(test_case.input);
+            let mut program = parser.parse_program().unwrap();
+            check_parser(&parser);
 
-    //         assert_eq!(program.statements.len(), 1);
+            assert_eq!(program.statements.len(), 1);
 
-    //         // TODO: Is there a way to do this without nexting `if let`s like this?
-    //         if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
-    //             if let ast::ExpressionType::Prefix(operator, nested_expression) = expression {
-    //                 assert_eq!(operator, test_case.operator);
+            // TODO: Is there a way to do this without nexting `if let`s like this?
+            if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
+                if let ast::ExpressionType::Infix(lhs, op, rhs) = expression {
+                    assert_eq!(op, test_case.op);
 
-    //                 if let ast::ExpressionType::Int(value) = *nested_expression {
-    //                     assert_eq!(value, test_case.value);
-    //                 } else {
-    //                     panic!("Expected type ast::ExpressionType::Int");
-    //                 }
-    //             } else {
-    //                 panic!("Expected type ast::ExpressionType::Prefix");
-    //             }
-    //         } else {
-    //             panic!("Expected type ast::StatementType::Expression");
-    //         }
-    //     }
-    // }
+                    if let ast::ExpressionType::Int(value) = *lhs {
+                        assert_eq!(value, test_case.lhs);
+                    } else {
+                        panic!("Expected type ast::ExpressionType::Int");
+                    }
+
+                    if let ast::ExpressionType::Int(value) = *rhs {
+                        assert_eq!(value, test_case.rhs);
+                    } else {
+                        panic!("Expected type ast::ExpressionType::Int");
+                    }
+                } else {
+                    panic!("Expected type ast::ExpressionType::Infix");
+                }
+            } else {
+                panic!("Expected type ast::StatementType::Expression");
+            }
+        }
+    }
+
+    #[test]
+    fn operator_precedence() {
+        struct TestCase<'a> {
+            input: &'a str,
+            expected: &'a str,
+            len: usize,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                input: "-a * b",
+                expected: "((-a) * b);",
+                len: 1,
+            },
+            TestCase {
+                input: "!-a",
+                expected: "(!(-a));",
+                len: 1,
+            },
+            TestCase {
+                input: "a + b + c",
+                expected: "((a + b) + c);",
+                len: 1,
+            },
+            TestCase {
+                input: "a * b * c",
+                expected: "((a * b) * c);",
+                len: 1,
+            },
+            TestCase {
+                input: "a * b / c",
+                expected: "((a * b) / c);",
+                len: 1,
+            },
+            TestCase {
+                input: "a + b / c",
+                expected: "(a + (b / c));",
+                len: 1,
+            },
+            TestCase {
+                input: "a + b * c + d / e - f",
+                expected: "(((a + (b * c)) + (d / e)) - f);",
+                len: 1,
+            },
+            TestCase {
+                input: "3 + 4; -5 * 5",
+                expected: "(3 + 4);\n((-5) * 5);",
+                len: 2,
+            },
+            TestCase {
+                input: "5 > 4 == 3 < 4",
+                expected: "((5 > 4) == (3 < 4));",
+                len: 1,
+            },
+            TestCase {
+                input: "5 < 4 != 3 > 4",
+                expected: "((5 < 4) != (3 > 4));",
+                len: 1,
+            },
+            TestCase {
+                input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
+                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)));",
+                len: 1,
+            },
+        ];
+
+        for test_case in test_cases {
+            let mut parser = make_parser(test_case.input);
+            let program = parser.parse_program().unwrap();
+            check_parser(&parser);
+
+            assert_eq!(program.statements.len(), test_case.len);
+            assert_eq!(program.to_string(), test_case.expected);
+        }
+    }
 
     fn make_parser(input: &str) -> Parser {
         let lexer = Lexer::new(input.chars().collect());
