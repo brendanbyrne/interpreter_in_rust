@@ -51,6 +51,7 @@ pub enum ExpressionType {
     Int(i128),
     Prefix(PrefixOperator, Box<ExpressionType>),
     Infix(Box<ExpressionType>, InfixOperator, Box<ExpressionType>),
+    Boolean(bool),
 }
 
 impl ToString for ExpressionType {
@@ -71,6 +72,7 @@ impl ToString for ExpressionType {
                     (*rhs).to_string()
                 )
             }
+            Boolean(value) => format!("{}", value),
         };
         string
     }

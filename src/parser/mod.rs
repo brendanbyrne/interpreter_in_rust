@@ -129,6 +129,8 @@ impl Parser {
             Token::Int(value) => return self.parse_prefix_int(value.to_string()),
             Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
             Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
+            Token::True => return Some(ast::ExpressionType::Boolean(true)),
+            Token::False => return Some(ast::ExpressionType::Boolean(false)),
             _ => return None,
         };
     }
@@ -416,7 +418,7 @@ return 993322;
 
             assert_eq!(program.statements.len(), 1);
 
-            // TODO: Is there a way to do this without nexting `if let`s like this?
+            // TODO: Is there a way to do this without nesting `if let`s like this?
             if let ast::StatementType::Expression(expression) = program.statements.pop().unwrap() {
                 if let ast::ExpressionType::Infix(lhs, op, rhs) = expression {
                     assert_eq!(op, test_case.op);
@@ -503,6 +505,26 @@ return 993322;
             TestCase {
                 input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)));",
+                len: 1,
+            },
+            TestCase {
+                input: "true",
+                expected: "true;",
+                len: 1,
+            },
+            TestCase {
+                input: "false",
+                expected: "false;",
+                len: 1,
+            },
+            TestCase {
+                input: "3 > 5 == false",
+                expected: "((3 > 5) == false);",
+                len: 1,
+            },
+            TestCase {
+                input: "3 < 5 == true",
+                expected: "((3 < 5) == true);",
                 len: 1,
             },
         ];
