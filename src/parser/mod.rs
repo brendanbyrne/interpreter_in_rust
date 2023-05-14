@@ -2,6 +2,8 @@ pub mod lexer;
 use lexer::{Lexer, Token};
 
 pub mod ast;
+// TODO: Should this trait be defined in this file?
+pub use ast::ToParseString;
 
 pub struct Parser {
     lexer: Lexer,
@@ -549,7 +551,7 @@ return 993322;
             check_parser(&parser);
 
             assert_eq!(program.statements.len(), test_case.len);
-            assert_eq!(program.to_string(), test_case.expected);
+            assert_eq!(program.to_parse_string(), test_case.expected);
         }
     }
 

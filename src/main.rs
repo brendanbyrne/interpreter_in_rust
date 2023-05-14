@@ -1,15 +1,15 @@
 use std::io::{self, Write};
 
 mod parser;
-use parser::{ast, Parser};
 use parser::lexer::Lexer;
+use parser::{ast, Parser, ToParseString};
 
 const PROMPT: &str = ">> ";
 
 fn read() -> io::Result<ast::Program> {
     print!("{}", PROMPT);
     io::stdout().flush()?;
-    
+
     let mut line = String::new();
     io::stdin().read_line(&mut line)?;
 
@@ -17,21 +17,19 @@ fn read() -> io::Result<ast::Program> {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program().unwrap();
 
-    println!("Parsed program:\n{}", program.to_string());
+    println!("Parsed program:\n{}", program.to_parse_string());
 
     Ok(program)
 }
-    
-fn eval(program: ast::Program) {
-    
-}
+
+fn eval(program: ast::Program) {}
 
 fn main() -> io::Result<()> {
-    println!("Monkey progamming language interpreter"); 
+    println!("Monkey progamming language interpreter");
     loop {
-	let program = read()?;
-	eval(program);
-	// let results = eval(program);
-	// print(results);
+        let program = read()?;
+        eval(program);
+        // let results = eval(program);
+        // print(results);
     }
 }
