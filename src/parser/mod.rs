@@ -309,19 +309,29 @@ return 993322;
         struct TestCase<'a> {
             input: &'a str,
             op: ast::PrefixOperator,
-            value: i128,
+            value: ast::Expression,
         }
 
         let test_cases = vec![
             TestCase {
-                input: "!5;",
+                input: "!5",
                 op: ast::PrefixOperator::Not,
-                value: 5,
+                value: ast::Expression::Int(5),
             },
             TestCase {
-                input: "-15;",
+                input: "-15",
                 op: ast::PrefixOperator::Negate,
-                value: 15,
+                value: ast::Expression::Int(15),
+            },
+            TestCase {
+                input: "!true",
+                op: ast::PrefixOperator::Not,
+                value: ast::Expression::Boolean(true),
+            },
+            TestCase {
+                input: "!false",
+                op: ast::PrefixOperator::Not,
+                value: ast::Expression::Boolean(false),
             },
         ];
 
@@ -337,11 +347,7 @@ return 993322;
                 if let ast::Expression::Prefix(op, nested_expression) = expression {
                     assert_eq!(op, test_case.op);
 
-                    if let ast::Expression::Int(value) = *nested_expression {
-                        assert_eq!(value, test_case.value);
-                    } else {
-                        panic!("Expected type ast::Expression::Int");
-                    }
+                    assert_eq!(*nested_expression, test_case.value);
                 } else {
                     panic!("Expected type ast::Expression::Prefix");
                 }
@@ -355,59 +361,77 @@ return 993322;
     fn infix_expression() {
         struct TestCase<'a> {
             input: &'a str,
-            lhs: i128,
-            rhs: i128,
+            lhs: ast::Expression,
+            rhs: ast::Expression,
             op: ast::InfixOperator,
         }
 
         let test_cases = vec![
             TestCase {
                 input: "5 + 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::Plus,
             },
             TestCase {
                 input: "5 - 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::Minus,
             },
             TestCase {
                 input: "5 * 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::Star,
             },
             TestCase {
                 input: "5 / 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::Slash,
             },
             TestCase {
                 input: "5 > 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::GreaterThan,
             },
             TestCase {
                 input: "5 < 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::LessThan,
             },
             TestCase {
                 input: "5 == 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::Equal,
             },
             TestCase {
                 input: "5 != 5",
-                lhs: 5,
-                rhs: 5,
+                lhs: ast::Expression::Int(5),
+                rhs: ast::Expression::Int(5),
                 op: ast::InfixOperator::NotEqual,
+            },
+            TestCase {
+                input: "true == true",
+                lhs: ast::Expression::Boolean(true),
+                rhs: ast::Expression::Boolean(true),
+                op: ast::InfixOperator::Equal,
+            },
+            TestCase {
+                input: "true != false",
+                lhs: ast::Expression::Boolean(true),
+                rhs: ast::Expression::Boolean(false),
+                op: ast::InfixOperator::NotEqual,
+            },
+            TestCase {
+                input: "false == false",
+                lhs: ast::Expression::Boolean(false),
+                rhs: ast::Expression::Boolean(false),
+                op: ast::InfixOperator::Equal,
             },
         ];
 
@@ -422,18 +446,8 @@ return 993322;
             if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
                 if let ast::Expression::Infix(lhs, op, rhs) = expression {
                     assert_eq!(op, test_case.op);
-
-                    if let ast::Expression::Int(value) = *lhs {
-                        assert_eq!(value, test_case.lhs);
-                    } else {
-                        panic!("Expected type ast::Expression::Int");
-                    }
-
-                    if let ast::Expression::Int(value) = *rhs {
-                        assert_eq!(value, test_case.rhs);
-                    } else {
-                        panic!("Expected type ast::Expression::Int");
-                    }
+                    assert_eq!(*lhs, test_case.lhs);
+                    assert_eq!(*rhs, test_case.rhs);
                 } else {
                     panic!("Expected type ast::Expression::Infix");
                 }

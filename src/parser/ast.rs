@@ -44,7 +44,7 @@ impl ToString for PrefixOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Empty,
     Identifier(String),
