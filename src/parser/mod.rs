@@ -133,7 +133,12 @@ impl Parser {
             Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
             Token::True => return Some(ast::Expression::Boolean(true)),
             Token::False => return Some(ast::Expression::Boolean(false)),
-            _ => return None,
+            Token::LParen => return self.parse_group(),
+            _ => {
+                self.errors
+                    .push(format!("No prefix parser for {:?}", self.cur_token));
+                return None;
+            }
         };
     }
 
@@ -160,9 +165,21 @@ impl Parser {
         op: ast::InfixOperator,
     ) -> Option<ast::Expression> {
         let precedence = Parser::precedence(&self.cur_token);
-        self.next_token(); // Drops operator
+        self.next_token(); // drop operator
+
         let rhs = self.parse_expression(precedence)?;
         Some(ast::Expression::Infix(Box::new(lhs), op, Box::new(rhs)))
+    }
+
+    fn parse_group(&mut self) -> Option<ast::Expression> {
+        self.next_token(); // drop (
+        let expression = self.parse_expression(Ordering::Lowest)?;
+
+        if !self.expect_peek(&Token::RParen) {
+            return None;
+        }
+
+        return Some(expression);
     }
 
     fn expect_peek(&mut self, token: &Token) -> bool {
@@ -541,6 +558,31 @@ return 993322;
             TestCase {
                 input: "3 < 5 == true",
                 expected: "((3 < 5) == true);",
+                len: 1,
+            },
+            TestCase {
+                input: "1 + (2 + 3) + 4",
+                expected: "((1 + (2 + 3)) + 4);",
+                len: 1,
+            },
+            TestCase {
+                input: "(5 + 5) * 2",
+                expected: "((5 + 5) * 2);",
+                len: 1,
+            },
+            TestCase {
+                input: "2 / (5 + 5)",
+                expected: "(2 / (5 + 5));",
+                len: 1,
+            },
+            TestCase {
+                input: "-(5 + 5)",
+                expected: "(-(5 + 5));",
+                len: 1,
+            },
+            TestCase {
+                input: "!(true == true)",
+                expected: "(!(true == true));",
                 len: 1,
             },
         ];

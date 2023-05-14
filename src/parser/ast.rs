@@ -90,11 +90,11 @@ impl ToString for Expression {
             Identifier(name) => name.clone(),
             Int(value) => format!("{}", value),
             Prefix(op, expression) => {
-                format!("({}{})", op.to_string(), (*expression).to_string())
+                format!("{}{}", op.to_string(), (*expression).to_string())
             }
             Infix(lhs, op, rhs) => {
                 format!(
-                    "({} {} {})",
+                    "{} {} {}",
                     (*lhs).to_string(),
                     op.to_string(),
                     (*rhs).to_string()
