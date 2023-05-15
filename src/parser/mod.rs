@@ -2,8 +2,6 @@ pub mod lexer;
 use lexer::{Lexer, Token};
 
 pub mod ast;
-// TODO: Should this trait be defined in this file?
-pub use ast::ToParseString;
 
 pub struct Parser {
     lexer: Lexer,
@@ -285,7 +283,7 @@ return 993322;
 
     #[test]
     fn identifier_expression() {
-        let mut parser = make_parser("foobar;");
+        let mut parser = make_parser("foobar");
 
         let mut program = parser.parse_program().unwrap();
         check_parser(&parser);
@@ -305,7 +303,7 @@ return 993322;
 
     #[test]
     fn integer_literal_expression() {
-        let mut parser = make_parser("5;");
+        let mut parser = make_parser("5");
 
         let mut program = parser.parse_program().unwrap();
         check_parser(&parser);
@@ -487,102 +485,102 @@ return 993322;
         let test_cases = vec![
             TestCase {
                 input: "-a * b",
-                expected: "((-a) * b);",
+                expected: "((-a) * b)",
                 len: 1,
             },
             TestCase {
                 input: "!-a",
-                expected: "(!(-a));",
+                expected: "(!(-a))",
                 len: 1,
             },
             TestCase {
                 input: "a + b + c",
-                expected: "((a + b) + c);",
+                expected: "((a + b) + c)",
                 len: 1,
             },
             TestCase {
                 input: "a * b * c",
-                expected: "((a * b) * c);",
+                expected: "((a * b) * c)",
                 len: 1,
             },
             TestCase {
                 input: "a * b / c",
-                expected: "((a * b) / c);",
+                expected: "((a * b) / c)",
                 len: 1,
             },
             TestCase {
                 input: "a + b / c",
-                expected: "(a + (b / c));",
+                expected: "(a + (b / c))",
                 len: 1,
             },
             TestCase {
                 input: "a + b * c + d / e - f",
-                expected: "(((a + (b * c)) + (d / e)) - f);",
+                expected: "(((a + (b * c)) + (d / e)) - f)",
                 len: 1,
             },
             TestCase {
                 input: "3 + 4; -5 * 5",
-                expected: "(3 + 4);\n((-5) * 5);",
+                expected: "(3 + 4)\n((-5) * 5)",
                 len: 2,
             },
             TestCase {
                 input: "5 > 4 == 3 < 4",
-                expected: "((5 > 4) == (3 < 4));",
+                expected: "((5 > 4) == (3 < 4))",
                 len: 1,
             },
             TestCase {
                 input: "5 < 4 != 3 > 4",
-                expected: "((5 < 4) != (3 > 4));",
+                expected: "((5 < 4) != (3 > 4))",
                 len: 1,
             },
             TestCase {
                 input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
-                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)));",
+                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
                 len: 1,
             },
             TestCase {
                 input: "true",
-                expected: "true;",
+                expected: "true",
                 len: 1,
             },
             TestCase {
                 input: "false",
-                expected: "false;",
+                expected: "false",
                 len: 1,
             },
             TestCase {
                 input: "3 > 5 == false",
-                expected: "((3 > 5) == false);",
+                expected: "((3 > 5) == false)",
                 len: 1,
             },
             TestCase {
                 input: "3 < 5 == true",
-                expected: "((3 < 5) == true);",
+                expected: "((3 < 5) == true)",
                 len: 1,
             },
             TestCase {
                 input: "1 + (2 + 3) + 4",
-                expected: "((1 + (2 + 3)) + 4);",
+                expected: "((1 + (2 + 3)) + 4)",
                 len: 1,
             },
             TestCase {
                 input: "(5 + 5) * 2",
-                expected: "((5 + 5) * 2);",
+                expected: "((5 + 5) * 2)",
                 len: 1,
             },
             TestCase {
                 input: "2 / (5 + 5)",
-                expected: "(2 / (5 + 5));",
+                expected: "(2 / (5 + 5))",
                 len: 1,
             },
             TestCase {
                 input: "-(5 + 5)",
-                expected: "(-(5 + 5));",
+                expected: "(-(5 + 5))",
                 len: 1,
             },
             TestCase {
                 input: "!(true == true)",
-                expected: "(!(true == true));",
+                expected: "(!(true == true))",
                 len: 1,
             },
         ];
@@ -593,7 +591,7 @@ return 993322;
             check_parser(&parser);
 
             assert_eq!(program.statements.len(), test_case.len);
-            assert_eq!(program.to_parse_string(), test_case.expected);
+            assert_eq!(program.to_string(), test_case.expected);
         }
     }
 

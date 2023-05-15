@@ -52,34 +52,7 @@ pub enum Expression {
     Prefix(PrefixOperator, Box<Expression>),
     Infix(Box<Expression>, InfixOperator, Box<Expression>),
     Boolean(bool),
-}
-
-pub trait ToParseString {
-    fn to_parse_string(&self) -> String;
-}
-
-impl ToParseString for Expression {
-    fn to_parse_string(&self) -> String {
-        use Expression::*;
-        let string = match self {
-            Empty => "".to_string(),
-            Identifier(name) => name.clone(),
-            Int(value) => format!("{}", value),
-            Prefix(op, expression) => {
-                format!("({}{})", op.to_string(), (*expression).to_parse_string())
-            }
-            Infix(lhs, op, rhs) => {
-                format!(
-                    "({} {} {})",
-                    (*lhs).to_parse_string(),
-                    op.to_string(),
-                    (*rhs).to_parse_string()
-                )
-            }
-            Boolean(value) => format!("{}", value),
-        };
-        string
-    }
+    If(Box<Expression>, Box<Statement>, Box<Statement>),
 }
 
 impl ToString for Expression {
@@ -90,46 +63,29 @@ impl ToString for Expression {
             Identifier(name) => name.clone(),
             Int(value) => format!("{}", value),
             Prefix(op, expression) => {
-                format!("{}{}", op.to_string(), (*expression).to_string())
+                format!("({}{})", op.to_string(), (*expression).to_string())
             }
             Infix(lhs, op, rhs) => {
                 format!(
-                    "{} {} {}",
+                    "({} {} {})",
                     (*lhs).to_string(),
                     op.to_string(),
                     (*rhs).to_string()
                 )
             }
             Boolean(value) => format!("{}", value),
+            _ => "Not implemented".to_string(),
         };
         string
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     Let(String, Expression),
     Return(Expression),
     Expression(Expression),
-}
-
-impl ToParseString for Statement {
-    fn to_parse_string(&self) -> String {
-        use Statement::*;
-        let mut statement = match self {
-            Let(name, expression) => {
-                format!("let {} = {}", name, expression.to_parse_string())
-            }
-            Return(expression) => {
-                format!("return {}", expression.to_parse_string())
-            }
-            Expression(expression) => {
-                format!("{}", expression.to_parse_string())
-            }
-        };
-        statement.push(';');
-        statement
-    }
+    Block(Vec<Box<Statement>>),
 }
 
 impl ToString for Statement {
@@ -145,8 +101,17 @@ impl ToString for Statement {
             Expression(expression) => {
                 format!("{}", expression.to_string())
             }
+            Block(statements) => {
+                format!(
+                    "{{\n{}\n}}",
+                    statements
+                        .iter()
+                        .map(|s| (*s).to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n\t")
+                )
+            }
         };
-        statement.push(';');
         statement
     }
 }
@@ -163,17 +128,6 @@ impl Program {
     }
 }
 
-impl ToParseString for Program {
-    fn to_parse_string(&self) -> String {
-        self.statements
-            .iter()
-            .map(|s| s.to_parse_string())
-            .collect::<Vec<String>>()
-            .join("\n")
-    }
-}
-
-// TODO: Is there a way to make this drier?  (w.r.t. ToParseString)
 impl ToString for Program {
     fn to_string(&self) -> String {
         self.statements
@@ -189,12 +143,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn to_parse_string() {
+    fn to_string() {
         let mut program = Program::new();
         program
             .statements
             .push(Statement::Let("foo".to_string(), Expression::Int(5)));
 
-        assert_eq!("let foo = 5;".to_string(), program.to_parse_string());
+        assert_eq!("let foo = 5".to_string(), program.to_string());
     }
 }

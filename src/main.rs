@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 mod parser;
 use parser::lexer::Lexer;
-use parser::{ast, Parser, ToParseString};
+use parser::{ast, Parser};
 
 const PROMPT: &str = ">> ";
 
@@ -17,7 +17,7 @@ fn read() -> io::Result<ast::Program> {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program().unwrap();
 
-    println!("Parsed program:\n{}", program.to_parse_string());
+    println!("Parsed program:\n{}", program.to_string());
 
     Ok(program)
 }
