@@ -1,7 +1,8 @@
 //! # Monkey Interpreter Crate
 //!
-//! `interpreter_in_rust` is an implementation of the Monkey interpreted
-//! programming language.
+//! `interpreter_in_rust` is an implementation of the Monkey programming
+//! language running in an interpreted environment.  Getting started is as
+//! simple as calling `start()`
 
 use std::io::{self, Write};
 
@@ -25,6 +26,7 @@ pub const MONKEY_FACE: &'static str = r#"
 
 const PROMPT: &'static str = ">> ";
 
+/// Starts the interpreter's REPL cycle
 pub fn start() -> io::Result<()> {
     println!("Monkey progamming language interpreter");
 
@@ -36,6 +38,7 @@ pub fn start() -> io::Result<()> {
     }
 }
 
+/// Read the users input and attempt to interpret it as Monkey code
 fn read() -> io::Result<ast::Program> {
     print!("{}", PROMPT);
     io::stdout().flush()?;
@@ -61,4 +64,5 @@ fn read() -> io::Result<ast::Program> {
     Ok(program)
 }
 
+/// Evaluate the parsed Monkey program
 fn eval(program: ast::Program) {}

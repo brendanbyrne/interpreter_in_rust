@@ -1,3 +1,4 @@
+//! Implementation of the Monkey language parser
 use std::result;
 
 pub mod lexer;
@@ -26,6 +27,7 @@ enum Ordering {
 }
 
 impl Parser {
+    /// Create a Parser object
     pub fn new(lexer: Lexer) -> Self {
         let mut parser = Parser {
             lexer,
@@ -38,6 +40,7 @@ impl Parser {
         parser
     }
 
+    /// Parse inputs and log any errors encountered
     pub fn parse_program(&mut self) -> ast::Program {
         let mut program = ast::Program::new();
 
