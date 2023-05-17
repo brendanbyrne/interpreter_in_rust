@@ -1,4 +1,3 @@
-use std::convert::From;
 use std::result;
 
 pub mod lexer;
@@ -87,24 +86,28 @@ impl Parser {
         let name = self.get_ident_name()?;
 
         self.expect_peek(&Token::Assign)?;
+        self.next_token();
 
-        // TODO: Skipping to semicolon
-        while self.cur_token != Token::Semicolon {
+        let expression = self.parse_expression(Ordering::Lowest)?;
+
+        if self.peek_token == Token::Semicolon {
             self.next_token();
         }
 
-        Ok(ast::Statement::Let(name, ast::Expression::Empty))
+        Ok(ast::Statement::Let(name, expression))
     }
 
     fn parse_return_statement(&mut self) -> Result<ast::Statement> {
         assert_eq!(self.cur_token, Token::Return);
         self.next_token();
 
-        // TODO: Skipping to semicolon
-        while self.cur_token != Token::Semicolon {
+        let expression = self.parse_expression(Ordering::Lowest)?;
+
+        if self.peek_token == Token::Semicolon {
             self.next_token();
         }
-        Ok(ast::Statement::Return(ast::Expression::Empty))
+
+        Ok(ast::Statement::Return(expression))
     }
 
     fn parse_expression_statement(&mut self) -> Result<ast::Statement> {
@@ -143,7 +146,7 @@ impl Parser {
             Token::False => return Ok(ast::Expression::Boolean(false)),
             Token::LParen => return self.parse_group(),
             Token::If => return self.parse_if(),
-            Token::Function => return self.parse_function(),
+            Token::Function => return self.parse_function_literal(),
             _ => return Err(format!("No prefix parser for {:?}", self.cur_token)),
         };
     }
@@ -169,10 +172,43 @@ impl Parser {
         op: ast::InfixOperator,
     ) -> Result<ast::Expression> {
         let precedence = Parser::precedence(&self.cur_token);
-        self.next_token(); // drop operator
 
-        let rhs = self.parse_expression(precedence)?;
-        Ok(ast::Expression::Infix(Box::new(lhs), op, Box::new(rhs)))
+        // Making a strong personal choice to treat Calls as a special case
+        // rather than a proper InfixOperator.  Well see if this is a good
+        // idea.
+        if op == ast::InfixOperator::Call {
+            let arguments = self.parse_call_args()?;
+            Ok(ast::Expression::Call(Box::new(lhs), arguments))
+        } else {
+            self.next_token(); // drop operator
+            let rhs = self.parse_expression(precedence)?;
+            Ok(ast::Expression::Infix(Box::new(lhs), op, Box::new(rhs)))
+        }
+    }
+
+    fn parse_call_args(&mut self) -> Result<Vec<Box<ast::Expression>>> {
+        assert_eq!(self.cur_token, Token::LParen);
+        self.next_token();
+
+        if self.cur_token == Token::RParen {
+            return Ok(vec![]);
+        }
+
+        let mut args = {
+            let arg = self.parse_expression(Ordering::Lowest)?;
+            vec![Box::new(arg)]
+        };
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+            self.next_token();
+            let arg = self.parse_expression(Ordering::Lowest)?;
+            args.push(Box::new(arg));
+        }
+
+        self.expect_peek(&Token::RParen)?;
+
+        Ok(args)
     }
 
     fn parse_group(&mut self) -> Result<ast::Expression> {
@@ -229,7 +265,7 @@ impl Parser {
         Ok(ast::Statement::Block(statements))
     }
 
-    fn parse_function(&mut self) -> Result<ast::Expression> {
+    fn parse_function_literal(&mut self) -> Result<ast::Expression> {
         assert_eq!(self.cur_token, Token::Function);
 
         self.expect_peek(&Token::LParen)?;
@@ -263,7 +299,7 @@ impl Parser {
             params.push(Box::new(ast::Expression::Identifier(name)));
         }
 
-        self.expect_peek(&Token::RParen);
+        self.expect_peek(&Token::RParen)?;
 
         Ok(params)
     }
@@ -294,6 +330,7 @@ impl Parser {
             Token::Minus => return Some(ast::InfixOperator::Minus),
             Token::Asterisk => return Some(ast::InfixOperator::Multiply),
             Token::Slash => return Some(ast::InfixOperator::Divide),
+            Token::LParen => return Some(ast::InfixOperator::Call),
             _ => return None,
         };
     }
@@ -308,6 +345,7 @@ impl Parser {
             Token::Minus => Ordering::PlusMinus,
             Token::Asterisk => Ordering::MultiplyDivide,
             Token::Slash => Ordering::MultiplyDivide,
+            Token::LParen => Ordering::Call,
             _ => Ordering::Lowest,
         };
         p
@@ -321,20 +359,37 @@ mod tests {
 
     #[test]
     fn let_statements() {
-        let program = ast::Program::from(
-            "
-let x = 5;
-let y = 10;
-let foobar = 838383;
-",
-        );
-        assert_eq!(program.statements.len(), 3);
+        struct TestCase<'a> {
+            input: &'a str,
+            expected_name: &'a str,
+            expected_expression: ast::Expression,
+        }
 
-        let tests = vec!["x", "y", "foobar"];
+        let test_cases = vec![
+            TestCase {
+                input: "let x = 5;",
+                expected_name: "x",
+                expected_expression: ast::Expression::Int(5),
+            },
+            TestCase {
+                input: "let y = 10;",
+                expected_name: "y",
+                expected_expression: ast::Expression::Int(10),
+            },
+            TestCase {
+                input: "let foobar = 838383;",
+                expected_name: "foobar",
+                expected_expression: ast::Expression::Int(838383),
+            },
+        ];
 
-        for (s, t) in program.statements.iter().zip(tests.iter()) {
-            if let ast::Statement::Let(name, _) = s {
-                assert_eq!(name, t);
+        for test_case in test_cases {
+            let mut program = ast::Program::from(test_case.input);
+            assert_eq!(program.statements.len(), 1);
+
+            if let ast::Statement::Let(name, expression) = program.statements.pop().unwrap() {
+                assert_eq!(name, test_case.expected_name);
+                assert_eq!(expression, test_case.expected_expression);
             } else {
                 panic!("Expected type ast::Statement::Let");
             }
@@ -343,17 +398,32 @@ let foobar = 838383;
 
     #[test]
     fn return_statements() {
-        let program = ast::Program::from(
-            "
-return 5;
-return 10;
-return 993322;
-",
-        );
-        assert_eq!(program.statements.len(), 3);
+        struct TestCase<'a> {
+            input: &'a str,
+            expected_expression: ast::Expression,
+        }
 
-        for s in program.statements {
-            if let ast::Statement::Return(_) = s {
+        let test_cases = vec![
+            TestCase {
+                input: "return 5;",
+                expected_expression: ast::Expression::Int(5),
+            },
+            TestCase {
+                input: "return 10;",
+                expected_expression: ast::Expression::Int(10),
+            },
+            TestCase {
+                input: "return 993322",
+                expected_expression: ast::Expression::Int(993322),
+            },
+        ];
+
+        for test_case in test_cases {
+            let mut program = ast::Program::from(test_case.input);
+            assert_eq!(program.statements.len(), 1);
+
+            if let ast::Statement::Return(expression) = program.statements.pop().unwrap() {
+                assert_eq!(expression, test_case.expected_expression);
             } else {
                 panic!("Expected type ast::Statement::Return");
             }
@@ -629,6 +699,21 @@ return 993322;
                 expected: "(!(true == true));",
                 len: 1,
             },
+            TestCase {
+                input: "a + add(b * c) + d",
+                expected: "((a + add((b * c))) + d);",
+                len: 1,
+            },
+            TestCase {
+                input: "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                expected: "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)));",
+                len: 1,
+            },
+            TestCase {
+                input: "add(a + b + c * d / f + g)",
+                expected: "add((((a + b) + ((c * d) / f)) + g));",
+                len: 1,
+            },
         ];
 
         for test_case in test_cases {
@@ -694,7 +779,7 @@ return 993322;
     }
 
     #[test]
-    fn function() {
+    fn function_literal_expression() {
         let mut program = ast::Program::from("fn(x, y) { x + y; }");
         assert_eq!(program.statements.len(), 1);
 
@@ -720,14 +805,14 @@ return 993322;
     }
 
     #[test]
-    fn func_parameters() {
+    fn function_parameters() {
         struct TestCase<'a> {
             input: &'a str,
             expected_params: Vec<Box<ast::Expression>>,
         }
 
-        fn make_ident(n: &str) -> Box<ast::Expression> {
-            return Box::new(ast::Expression::Identifier(n.to_owned()));
+        fn make_id(id: &str) -> Box<ast::Expression> {
+            return Box::new(ast::Expression::Identifier(id.to_owned()));
         }
 
         let test_cases = vec![
@@ -737,16 +822,45 @@ return 993322;
             },
             TestCase {
                 input: "fn(x) {};",
-                expected_params: vec![make_ident("x")],
+                expected_params: vec![make_id("x")],
             },
             TestCase {
                 input: "fn(x, y, z) {};",
-                expected_params: vec![make_ident("x"), make_ident("y"), make_ident("z")],
+                expected_params: vec![make_id("x"), make_id("y"), make_id("z")],
             },
         ];
 
         for test_case in test_cases {
             let mut program = ast::Program::from(test_case.input);
+
+            if let ast::Expression::Function(params, _) = get_expression(&mut program) {
+                assert_eq!(params, test_case.expected_params);
+            } else {
+                panic!("Expected ast::Expression::Function");
+            }
+        }
+    }
+
+    #[test]
+    fn call_expression() {
+        let mut program = ast::Program::from("add(1, 2 * 3, 4 + 5);");
+        assert_eq!(program.statements.len(), 1);
+
+        use ast::Expression::{Identifier, Infix, Int};
+        use ast::InfixOperator::{Multiply, Plus};
+
+        let expected_name = Identifier("add".to_owned());
+        let expected_inputs = vec![
+            Box::new(Int(1)),
+            Box::new(Infix(Box::new(Int(2)), Multiply, Box::new(Int(3)))),
+            Box::new(Infix(Box::new(Int(4)), Plus, Box::new(Int(5)))),
+        ];
+
+        if let ast::Expression::Call(name, inputs) = get_expression(&mut program) {
+            assert_eq!(*name, expected_name);
+            assert_eq!(inputs, expected_inputs);
+        } else {
+            panic!("Expected ast::Expression::Call");
         }
     }
 

@@ -8,6 +8,7 @@ pub enum InfixOperator {
     GreaterThan,
     Equal,
     NotEqual,
+    Call,
 }
 
 impl ToString for InfixOperator {
@@ -22,6 +23,7 @@ impl ToString for InfixOperator {
             GreaterThan => ">",
             Equal => "==",
             NotEqual => "!=",
+            Call => panic!("It shouldn't be possible to print a Call this way."),
         };
         value.to_string()
     }
@@ -46,7 +48,6 @@ impl ToString for PrefixOperator {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
-    Empty,
     Identifier(String),
     Int(i128),
     Prefix(PrefixOperator, Box<Expression>),
@@ -55,13 +56,13 @@ pub enum Expression {
     If(Box<Expression>, Box<Statement>),
     IfElse(Box<Expression>, Box<Statement>, Box<Statement>),
     Function(Vec<Box<Expression>>, Box<Statement>),
+    Call(Box<Expression>, Vec<Box<Expression>>),
 }
 
 impl ToString for Expression {
     fn to_string(&self) -> String {
         use Expression::*;
         let string = match self {
-            Empty => "".to_string(),
             Identifier(name) => name.clone(),
             Int(value) => format!("{}", value),
             Prefix(op, expression) => {
@@ -98,6 +99,16 @@ impl ToString for Expression {
                     body.to_string()
                 )
             }
+            Call(name, args) => {
+                format!(
+                    "{}({})",
+                    (*name).to_string(),
+                    args.iter()
+                        .map(|e| (*e).to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )
+            }
         };
         string
     }
@@ -114,15 +125,15 @@ pub enum Statement {
 impl ToString for Statement {
     fn to_string(&self) -> String {
         use Statement::*;
-        let mut statement = match self {
+        let statement = match self {
             Let(name, expression) => {
-                format!("let {} = {}", name, expression.to_string())
+                format!("let {} = {};", name, expression.to_string())
             }
             Return(expression) => {
-                format!("return {}", expression.to_string())
+                format!("return {};", expression.to_string())
             }
             Expression(expression) => {
-                format!("{}", expression.to_string())
+                format!("{};", expression.to_string())
             }
             Block(statements) => {
                 format!(
@@ -135,7 +146,6 @@ impl ToString for Statement {
                 )
             }
         };
-        statement.push(';');
         statement
     }
 }
