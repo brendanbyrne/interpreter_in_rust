@@ -1,9 +1,11 @@
+use std::convert::From;
+use std::result;
+
 pub mod lexer;
 use lexer::{Lexer, Token};
 
 pub mod ast;
 
-use std::result;
 type Result<T> = result::Result<T, String>;
 
 pub struct Parser {
@@ -141,6 +143,7 @@ impl Parser {
             Token::False => return Ok(ast::Expression::Boolean(false)),
             Token::LParen => return self.parse_group(),
             Token::If => return self.parse_if(),
+            Token::Function => return self.parse_function(),
             _ => return Err(format!("No prefix parser for {:?}", self.cur_token)),
         };
     }
@@ -226,6 +229,45 @@ impl Parser {
         Ok(ast::Statement::Block(statements))
     }
 
+    fn parse_function(&mut self) -> Result<ast::Expression> {
+        assert_eq!(self.cur_token, Token::Function);
+
+        self.expect_peek(&Token::LParen)?;
+
+        let params = self.parse_func_params()?;
+
+        self.expect_peek(&Token::LBrace)?;
+
+        let body = self.parse_block_statement()?;
+
+        Ok(ast::Expression::Function(params, Box::new(body)))
+    }
+
+    fn parse_func_params(&mut self) -> Result<Vec<Box<ast::Expression>>> {
+        assert_eq!(self.cur_token, Token::LParen);
+        self.next_token();
+
+        if self.cur_token == Token::RParen {
+            return Ok(vec![]);
+        }
+
+        let mut params = {
+            let name = self.get_ident_name()?;
+            vec![Box::new(ast::Expression::Identifier(name))]
+        };
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+            self.next_token();
+            let name = self.get_ident_name()?;
+            params.push(Box::new(ast::Expression::Identifier(name)));
+        }
+
+        self.expect_peek(&Token::RParen);
+
+        Ok(params)
+    }
+
     fn expect_peek(&mut self, token: &Token) -> Result<()> {
         if &self.peek_token == token {
             self.next_token();
@@ -279,16 +321,13 @@ mod tests {
 
     #[test]
     fn let_statements() {
-        let mut parser = make_parser(
+        let program = ast::Program::from(
             "
 let x = 5;
 let y = 10;
 let foobar = 838383;
 ",
         );
-        let program = parser.parse_program();
-        check_parser(&parser);
-
         assert_eq!(program.statements.len(), 3);
 
         let tests = vec!["x", "y", "foobar"];
@@ -304,16 +343,13 @@ let foobar = 838383;
 
     #[test]
     fn return_statements() {
-        let mut parser = make_parser(
+        let program = ast::Program::from(
             "
 return 5;
 return 10;
 return 993322;
 ",
         );
-        let program = parser.parse_program();
-        check_parser(&parser);
-
         assert_eq!(program.statements.len(), 3);
 
         for s in program.statements {
@@ -326,41 +362,25 @@ return 993322;
 
     #[test]
     fn identifier_expression() {
-        let mut parser = make_parser("foobar");
-
-        let mut program = parser.parse_program();
-        check_parser(&parser);
-
+        let mut program = ast::Program::from("foobar");
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
-            if let ast::Expression::Identifier(name) = expression {
-                assert_eq!("foobar", name);
-            } else {
-                panic!("Expected type ast::Expression::Indentifier");
-            }
+        if let ast::Expression::Identifier(name) = get_expression(&mut program) {
+            assert_eq!("foobar", name);
         } else {
-            panic!("Expected type ast::Statement::Expression");
+            panic!("Expected type ast::Expression::Indentifier");
         }
     }
 
     #[test]
     fn integer_literal_expression() {
-        let mut parser = make_parser("5");
-
-        let mut program = parser.parse_program();
-        check_parser(&parser);
-
+        let mut program = ast::Program::from("5");
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
-            if let ast::Expression::Int(value) = expression {
-                assert_eq!(5, value);
-            } else {
-                panic!("Expected type ast::Expression::Indentifier");
-            }
+        if let ast::Expression::Int(value) = get_expression(&mut program) {
+            assert_eq!(5, value);
         } else {
-            panic!("Expected type ast::Statement::Expression");
+            panic!("Expected type ast::Expression::Indentifier");
         }
     }
 
@@ -396,23 +416,14 @@ return 993322;
         ];
 
         for test_case in test_cases {
-            let mut parser = make_parser(test_case.input);
-            let mut program = parser.parse_program();
-            check_parser(&parser);
-
+            let mut program = ast::Program::from(test_case.input);
             assert_eq!(program.statements.len(), 1);
 
-            // QUESTION: Is there a way to do this without nesting `if let`s like this?
-            if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
-                if let ast::Expression::Prefix(op, nested_expression) = expression {
-                    assert_eq!(op, test_case.op);
-
-                    assert_eq!(*nested_expression, test_case.value);
-                } else {
-                    panic!("Expected type ast::Expression::Prefix");
-                }
+            if let ast::Expression::Prefix(op, nested_expression) = get_expression(&mut program) {
+                assert_eq!(op, test_case.op);
+                assert_eq!(*nested_expression, test_case.value);
             } else {
-                panic!("Expected type ast::Statement::Expression");
+                panic!("Expected type ast::Expression::Prefix");
             }
         }
     }
@@ -496,23 +507,15 @@ return 993322;
         ];
 
         for test_case in test_cases {
-            let mut parser = make_parser(test_case.input);
-            let mut program = parser.parse_program();
-            check_parser(&parser);
-
+            let mut program = ast::Program::from(test_case.input);
             assert_eq!(program.statements.len(), 1);
 
-            // QUESTION: Is there a way to do this without nesting `if let`s like this?
-            if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
-                if let ast::Expression::Infix(lhs, op, rhs) = expression {
-                    assert_eq!(op, test_case.op);
-                    assert_eq!(*lhs, test_case.lhs);
-                    assert_eq!(*rhs, test_case.rhs);
-                } else {
-                    panic!("Expected type ast::Expression::Infix");
-                }
+            if let ast::Expression::Infix(lhs, op, rhs) = get_expression(&mut program) {
+                assert_eq!(op, test_case.op);
+                assert_eq!(*lhs, test_case.lhs);
+                assert_eq!(*rhs, test_case.rhs);
             } else {
-                panic!("Expected type ast::Statement::Expression");
+                panic!("Expected type ast::Expression::Infix");
             }
         }
     }
@@ -528,111 +531,108 @@ return 993322;
         let test_cases = vec![
             TestCase {
                 input: "-a * b",
-                expected: "((-a) * b)",
+                expected: "((-a) * b);",
                 len: 1,
             },
             TestCase {
                 input: "!-a",
-                expected: "(!(-a))",
+                expected: "(!(-a));",
                 len: 1,
             },
             TestCase {
                 input: "a + b + c",
-                expected: "((a + b) + c)",
+                expected: "((a + b) + c);",
                 len: 1,
             },
             TestCase {
                 input: "a * b * c",
-                expected: "((a * b) * c)",
+                expected: "((a * b) * c);",
                 len: 1,
             },
             TestCase {
                 input: "a * b / c",
-                expected: "((a * b) / c)",
+                expected: "((a * b) / c);",
                 len: 1,
             },
             TestCase {
                 input: "a + b / c",
-                expected: "(a + (b / c))",
+                expected: "(a + (b / c));",
                 len: 1,
             },
             TestCase {
                 input: "a + b * c + d / e - f",
-                expected: "(((a + (b * c)) + (d / e)) - f)",
+                expected: "(((a + (b * c)) + (d / e)) - f);",
                 len: 1,
             },
             TestCase {
                 input: "3 + 4; -5 * 5",
-                expected: "(3 + 4)\n((-5) * 5)",
+                expected: "(3 + 4);\n((-5) * 5);",
                 len: 2,
             },
             TestCase {
                 input: "5 > 4 == 3 < 4",
-                expected: "((5 > 4) == (3 < 4))",
+                expected: "((5 > 4) == (3 < 4));",
                 len: 1,
             },
             TestCase {
                 input: "5 < 4 != 3 > 4",
-                expected: "((5 < 4) != (3 > 4))",
+                expected: "((5 < 4) != (3 > 4));",
                 len: 1,
             },
             TestCase {
                 input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
-                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)));",
                 len: 1,
             },
             TestCase {
                 input: "true",
-                expected: "true",
+                expected: "true;",
                 len: 1,
             },
             TestCase {
                 input: "false",
-                expected: "false",
+                expected: "false;",
                 len: 1,
             },
             TestCase {
                 input: "3 > 5 == false",
-                expected: "((3 > 5) == false)",
+                expected: "((3 > 5) == false);",
                 len: 1,
             },
             TestCase {
                 input: "3 < 5 == true",
-                expected: "((3 < 5) == true)",
+                expected: "((3 < 5) == true);",
                 len: 1,
             },
             TestCase {
                 input: "1 + (2 + 3) + 4",
-                expected: "((1 + (2 + 3)) + 4)",
+                expected: "((1 + (2 + 3)) + 4);",
                 len: 1,
             },
             TestCase {
                 input: "(5 + 5) * 2",
-                expected: "((5 + 5) * 2)",
+                expected: "((5 + 5) * 2);",
                 len: 1,
             },
             TestCase {
                 input: "2 / (5 + 5)",
-                expected: "(2 / (5 + 5))",
+                expected: "(2 / (5 + 5));",
                 len: 1,
             },
             TestCase {
                 input: "-(5 + 5)",
-                expected: "(-(5 + 5))",
+                expected: "(-(5 + 5));",
                 len: 1,
             },
             TestCase {
                 input: "!(true == true)",
-                expected: "(!(true == true))",
+                expected: "(!(true == true));",
                 len: 1,
             },
         ];
 
         for test_case in test_cases {
-            let mut parser = make_parser(test_case.input);
-            let program = parser.parse_program();
-            check_parser(&parser);
-
+            let program = ast::Program::from(test_case.input);
             assert_eq!(program.statements.len(), test_case.len);
             assert_eq!(program.to_string(), test_case.expected);
         }
@@ -640,7 +640,7 @@ return 993322;
 
     #[test]
     fn if_expression() {
-        let mut parser = make_parser("if (x < y) { x }");
+        let mut program = ast::Program::from("if (x < y) { x }");
 
         use ast::Expression::{Identifier, Infix};
         use ast::InfixOperator::LessThan;
@@ -654,28 +654,19 @@ return 993322;
 
         let expected_if_true = Block(vec![Box::new(Expression(Identifier("x".to_owned())))]);
 
-        let mut program = parser.parse_program();
-        check_parser(&parser);
-
         assert_eq!(program.statements.len(), 1);
 
-        let statement = program.statements.pop().unwrap();
-
-        if let ast::Statement::Expression(expression) = statement {
-            if let ast::Expression::If(cond, if_true) = expression {
-                assert_eq!(*cond, expected_cond);
-                assert_eq!(*if_true, expected_if_true);
-            } else {
-                panic!("Expected If expression");
-            }
+        if let ast::Expression::If(cond, if_true) = get_expression(&mut program) {
+            assert_eq!(*cond, expected_cond);
+            assert_eq!(*if_true, expected_if_true);
         } else {
-            panic!("Expected ast::Statement::Expression");
+            panic!("Expected If expression");
         }
     }
 
     #[test]
     fn if_else_expression() {
-        let mut parser = make_parser("if (x < y) { x } else { y }");
+        let mut program = ast::Program::from("if (x < y) { x } else { y }");
 
         use ast::Expression::{Identifier, Infix};
         use ast::InfixOperator::LessThan;
@@ -691,29 +682,90 @@ return 993322;
 
         let expected_if_false = Block(vec![Box::new(Expression(Identifier("y".to_owned())))]);
 
-        let mut program = parser.parse_program();
-        check_parser(&parser);
-
         assert_eq!(program.statements.len(), 1);
 
-        let statement = program.statements.pop().unwrap();
-
-        if let ast::Statement::Expression(expression) = statement {
-            if let ast::Expression::IfElse(cond, if_true, if_false) = expression {
-                assert_eq!(*cond, expected_cond);
-                assert_eq!(*if_true, expected_if_true);
-                assert_eq!(*if_false, expected_if_false);
-            } else {
-                panic!("Expected If expression");
-            }
+        if let ast::Expression::IfElse(cond, if_true, if_false) = get_expression(&mut program) {
+            assert_eq!(*cond, expected_cond);
+            assert_eq!(*if_true, expected_if_true);
+            assert_eq!(*if_false, expected_if_false);
         } else {
-            panic!("Expected ast::Statement::Expression");
+            panic!("Expected ast::Expression::If expression");
         }
     }
 
-    fn make_parser(input: &str) -> Parser {
-        let lexer = Lexer::new(input.chars().collect());
-        Parser::new(lexer)
+    #[test]
+    fn function() {
+        let mut program = ast::Program::from("fn(x, y) { x + y; }");
+        assert_eq!(program.statements.len(), 1);
+
+        use ast::Expression::{Identifier, Infix};
+        use ast::InfixOperator::Plus;
+        use ast::Statement::{Block, Expression};
+
+        let x = Identifier("x".to_owned());
+        let y = Identifier("y".to_owned());
+        let expected_params = vec![Box::new(x.clone()), Box::new(y.clone())];
+        let expected_body = Block(vec![Box::new(Expression(Infix(
+            Box::new(x),
+            Plus,
+            Box::new(y),
+        )))]);
+
+        if let ast::Expression::Function(params, body) = get_expression(&mut program) {
+            assert_eq!(params, expected_params);
+            assert_eq!(*body, expected_body);
+        } else {
+            panic!("Expected ast::Expression::Function");
+        }
+    }
+
+    #[test]
+    fn func_parameters() {
+        struct TestCase<'a> {
+            input: &'a str,
+            expected_params: Vec<Box<ast::Expression>>,
+        }
+
+        fn make_ident(n: &str) -> Box<ast::Expression> {
+            return Box::new(ast::Expression::Identifier(n.to_owned()));
+        }
+
+        let test_cases = vec![
+            TestCase {
+                input: "fn() {};",
+                expected_params: vec![],
+            },
+            TestCase {
+                input: "fn(x) {};",
+                expected_params: vec![make_ident("x")],
+            },
+            TestCase {
+                input: "fn(x, y, z) {};",
+                expected_params: vec![make_ident("x"), make_ident("y"), make_ident("z")],
+            },
+        ];
+
+        for test_case in test_cases {
+            let mut program = ast::Program::from(test_case.input);
+        }
+    }
+
+    impl From<&str> for ast::Program {
+        fn from(input: &str) -> Self {
+            let lexer = Lexer::new(input.chars().collect());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            check_parser(&parser);
+            program
+        }
+    }
+
+    fn get_expression(program: &mut ast::Program) -> ast::Expression {
+        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+            return expression;
+        } else {
+            panic!("Expected ast::Statement::Expression");
+        }
     }
 
     fn check_parser(parser: &Parser) {

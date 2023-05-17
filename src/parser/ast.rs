@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InfixOperator {
     Plus,
     Minus,
@@ -27,7 +27,7 @@ impl ToString for InfixOperator {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PrefixOperator {
     Negate,
     Not,
@@ -44,7 +44,7 @@ impl ToString for PrefixOperator {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     Empty,
     Identifier(String),
@@ -87,7 +87,7 @@ impl ToString for Expression {
                     (*if_false).to_string()
                 )
             }
-            Function(params, block) => {
+            Function(params, body) => {
                 format!(
                     "fn({}) {}",
                     params
@@ -95,7 +95,7 @@ impl ToString for Expression {
                         .map(|e| (*e).to_string())
                         .collect::<Vec<String>>()
                         .join(", "),
-                    block.to_string()
+                    body.to_string()
                 )
             }
         };
@@ -103,7 +103,7 @@ impl ToString for Expression {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(String, Expression),
     Return(Expression),
@@ -135,6 +135,7 @@ impl ToString for Statement {
                 )
             }
         };
+        statement.push(';');
         statement
     }
 }
@@ -172,6 +173,6 @@ mod tests {
             .statements
             .push(Statement::Let("foo".to_string(), Expression::Int(5)));
 
-        assert_eq!("let foo = 5".to_string(), program.to_string());
+        assert_eq!("let foo = 5;".to_string(), program.to_string());
     }
 }
