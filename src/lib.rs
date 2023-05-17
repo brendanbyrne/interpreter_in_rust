@@ -1,6 +1,6 @@
 //! # Monkey Interpreter Crate
 //!
-//! `interpreter_in_rust` is an implementation of the Monkey programming
+//! `monkey_interpreter` is an implementation of the Monkey programming
 //! language running in an interpreted environment.  Getting started is as
 //! simple as calling `start()`
 
