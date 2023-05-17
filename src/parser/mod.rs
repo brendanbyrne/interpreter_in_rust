@@ -11,7 +11,7 @@ pub struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Token,
-    errors: Vec<String>,
+    pub errors: Vec<String>,
 }
 
 #[derive(PartialEq, PartialOrd)]
