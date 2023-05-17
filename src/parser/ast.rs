@@ -2,8 +2,8 @@
 pub enum InfixOperator {
     Plus,
     Minus,
-    Star,
-    Slash,
+    Multiply,
+    Divide,
     LessThan,
     GreaterThan,
     Equal,
@@ -16,8 +16,8 @@ impl ToString for InfixOperator {
         let value = match self {
             Plus => "+",
             Minus => "-",
-            Star => "*",
-            Slash => "/",
+            Multiply => "*",
+            Divide => "/",
             LessThan => "<",
             GreaterThan => ">",
             Equal => "==",
@@ -52,7 +52,9 @@ pub enum Expression {
     Prefix(PrefixOperator, Box<Expression>),
     Infix(Box<Expression>, InfixOperator, Box<Expression>),
     Boolean(bool),
-    If(Box<Expression>, Box<Statement>, Box<Statement>),
+    If(Box<Expression>, Box<Statement>),
+    IfElse(Box<Expression>, Box<Statement>, Box<Statement>),
+    Function(Vec<Box<Expression>>, Box<Statement>),
 }
 
 impl ToString for Expression {
@@ -74,7 +76,28 @@ impl ToString for Expression {
                 )
             }
             Boolean(value) => format!("{}", value),
-            _ => "Not implemented".to_string(),
+            If(cond, if_true) => {
+                format!("if ({}) {}", (*cond).to_string(), (*if_true).to_string())
+            }
+            IfElse(cond, if_true, if_false) => {
+                format!(
+                    "if ({}) {} else {}",
+                    (*cond).to_string(),
+                    (*if_true).to_string(),
+                    (*if_false).to_string()
+                )
+            }
+            Function(params, block) => {
+                format!(
+                    "fn({}) {}",
+                    params
+                        .iter()
+                        .map(|e| (*e).to_string())
+                        .collect::<Vec<String>>()
+                        .join(", "),
+                    block.to_string()
+                )
+            }
         };
         string
     }

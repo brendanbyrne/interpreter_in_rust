@@ -14,8 +14,7 @@ fn read() -> io::Result<ast::Program> {
     io::stdin().read_line(&mut line)?;
 
     let lexer = Lexer::new(line.trim().chars().collect());
-    let mut parser = Parser::new(lexer);
-    let program = parser.parse_program().unwrap();
+    let program = Parser::new(lexer).parse_program();
 
     println!("Parsed program:\n{}", program.to_string());
 
