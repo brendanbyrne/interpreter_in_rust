@@ -1,14 +1,14 @@
 //! # Monkey Interpreter Crate
 //!
 //! `monkey_interpreter` is an implementation of the Monkey programming
-//! language running in an interpreted environment.  Getting started is as
-//! simple as calling `start()`
+//! language running in an interpreted environment.  Call `start()` to begin the
+//! REPL sequence.
 
+use std::error::Error;
 use std::io::{self, Write};
 
 mod parser;
-use parser::lexer::Lexer;
-use parser::{ast, Parser};
+use parser::{parse_program, Program};
 
 pub const MONKEY_FACE: &'static str = r#"
             __,__
@@ -27,42 +27,54 @@ pub const MONKEY_FACE: &'static str = r#"
 const PROMPT: &'static str = ">> ";
 
 /// Starts the interpreter's REPL cycle
-pub fn start() -> io::Result<()> {
+///
+/// Runs until SIGINT, [ctrl] + c, triggers its termination.
+///
+/// # Example
+/// ```no_run
+/// use monkey_interpreter;
+/// monkey_interpreter::start();
+/// ```
+pub fn start() {
     println!("Monkey progamming language interpreter");
 
     loop {
-        let program = read()?;
+        let program = match read() {
+            Ok(program) => program,
+            Err(error_msg) => {
+                let error_msg = format!(
+                    "{}
+Ran into some monkey business.
+The following errors occured while parsing:
+{}",
+                    MONKEY_FACE, error_msg
+                );
+                println!("{}", error_msg);
+                continue;
+            }
+        };
         eval(program);
         // let results = eval(program);
-        // print(results);
+        // println!(results.to_strin());
     }
 }
 
-/// Read the users input and attempt to interpret it as Monkey code
-fn read() -> io::Result<ast::Program> {
+/// Returns a program or the error message from the parser
+///
+/// Attempts to parse a program read from stdin
+fn read() -> Result<Program, Box<dyn Error>> {
     print!("{}", PROMPT);
     io::stdout().flush()?;
 
     let mut line = String::new();
     io::stdin().read_line(&mut line)?;
 
-    let lexer = Lexer::new(line.trim().chars().collect());
-    let mut parser = Parser::new(lexer);
-    let program = parser.parse_program();
-
-    if !parser.errors.is_empty() {
-        println!("{}", MONKEY_FACE);
-        println!("Ran into some monkey business.");
-        println!("The following errors occured while parsing:");
-        for msg in parser.errors {
-            println!("{}", msg);
-        }
-    }
-
-    println!("Parsed program:\n{}", program.to_string());
+    let program = parse_program(&line)?;
 
     Ok(program)
 }
 
-/// Evaluate the parsed Monkey program
-fn eval(program: ast::Program) {}
+/// Evaluate the parsed program
+fn eval(program: Program) {
+    println!("Parsed program:\n{}", program.to_string());
+}
