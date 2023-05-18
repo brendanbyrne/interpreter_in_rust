@@ -5,7 +5,7 @@ use std::result;
 mod lexer;
 use lexer::{Lexer, Token};
 
-mod ast;
+pub mod ast;
 pub use ast::Program;
 
 type Result<T> = result::Result<T, String>;

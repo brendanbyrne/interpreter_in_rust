@@ -10,6 +10,9 @@ use std::io::{self, Write};
 mod parser;
 use parser::{parse_program, Program};
 
+mod evaluator;
+use evaluator::Evaluator;
+
 pub const MONKEY_FACE: &'static str = r#"
             __,__
    .--.  .-"     "-.  .--.
@@ -38,6 +41,8 @@ const PROMPT: &'static str = ">> ";
 pub fn start() {
     println!("Monkey progamming language interpreter");
 
+    let mut evaluator = Evaluator::new();
+
     loop {
         let program = match read() {
             Ok(program) => program,
@@ -53,9 +58,8 @@ The following errors occured while parsing:
                 continue;
             }
         };
-        eval(program);
-        // let results = eval(program);
-        // println!(results.to_strin());
+
+        evaluator.eval(program);
     }
 }
 
@@ -72,9 +76,4 @@ fn read() -> Result<Program, Box<dyn Error>> {
     let program = parse_program(&line)?;
 
     Ok(program)
-}
-
-/// Evaluate the parsed program
-fn eval(program: Program) {
-    println!("Parsed program:\n{}", program.to_string());
 }

@@ -1,5 +1,5 @@
-use monkey_interpreter::start;
+use monkey_interpreter;
 
 fn main() {
-    start();
+    monkey_interpreter::start();
 }
