@@ -1,9 +1,9 @@
 //! Powers the eval portion of the REPL cycle
 
-use crate::parser::{ast, parse_program, Program};
+use crate::parser::{ast, Program};
 
 mod object;
-use object::Object;
+use object::{Object, FALSE, NULL, TRUE};
 
 /// Contains the state of the execuated program
 pub struct Evaluator {}
@@ -15,23 +15,97 @@ impl Evaluator {
     }
 
     /// Evaluate a program
-    pub fn eval(&mut self, program: Program) {
+    pub fn eval(&mut self, program: Program) -> Object {
+        let mut obj = Object::Null;
         for statement in program.statements {
-            self.eval_statement(statement);
+            obj = self.statement(statement);
         }
+        return obj;
     }
 
-    fn eval_statement(&mut self, statement: ast::Statement) -> Object {
+    fn statement(&mut self, statement: ast::Statement) -> Object {
         match statement {
-            ast::Statement::Expression(expr) => self.eval_expression(expr),
-            _ => Object::Null,
+            ast::Statement::Expression(expr) => self.expression(expr),
+            _ => NULL,
         }
     }
 
-    fn eval_expression(&mut self, expression: ast::Expression) -> Object {
+    fn expression(&mut self, expression: ast::Expression) -> Object {
         match expression {
             ast::Expression::Int(value) => Object::Int(value),
-            _ => Object::Null,
+            ast::Expression::Bool(value) => {
+                if value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            ast::Expression::Prefix(op, rhs) => {
+                let obj = self.expression(*rhs);
+                self.prefix(op, obj)
+            }
+            ast::Expression::Infix(op, lhs, rhs) => {
+                let lhs_obj = self.expression(*lhs);
+                let rhs_obj = self.expression(*rhs);
+                self.infix(op, lhs_obj, rhs_obj)
+            }
+            _ => NULL,
+        }
+    }
+
+    fn prefix(&mut self, op: ast::PrefixOperator, rhs: Object) -> Object {
+        match op {
+            ast::PrefixOperator::Not => self.not(rhs),
+            ast::PrefixOperator::Negate => self.negate(rhs),
+        }
+    }
+
+    fn not(&mut self, rhs: Object) -> Object {
+        match rhs {
+            TRUE => FALSE,
+            FALSE => TRUE,
+            NULL => TRUE,
+            Object::Int(value) => {
+                if value == 0 {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+        }
+    }
+
+    fn negate(&mut self, rhs: Object) -> Object {
+        match rhs {
+            Object::Int(value) => Object::Int(-value),
+            _ => NULL,
+        }
+    }
+
+    fn infix(&mut self, op: ast::InfixOperator, lhs: Object, rhs: Object) -> Object {
+        use ast::InfixOperator::*;
+        match op {
+            Equal => Object::Bool(lhs == rhs),
+            NotEqual => Object::Bool(lhs == rhs),
+            Call => panic!("This path should never be executed."),
+            _ => self.infix_math(op, lhs, rhs),
+        }
+    }
+
+    fn infix_math(&mut self, op: ast::InfixOperator, lhs_obj: Object, rhs_obj: Object) -> Object {
+        if let Some((lhs, rhs)) = object::get_infix_ints(lhs_obj, rhs_obj) {
+            use ast::InfixOperator::*;
+            match op {
+                Plus => Object::Int(lhs + rhs),
+                Minus => Object::Int(lhs - rhs),
+                Multiply => Object::Int(lhs * rhs),
+                Divide => Object::Int(lhs / rhs),
+                LessThan => Object::Bool(lhs < rhs),
+                GreaterThan => Object::Bool(lhs > rhs),
+                _ => panic!("This path should never be executed."),
+            }
+        } else {
+            NULL
         }
     }
 }
@@ -39,35 +113,116 @@ impl Evaluator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::parse_program;
 
     #[test]
-    fn int() {
+    fn eval() {
         struct TestCase<'a> {
             input: &'a str,
-            expected_value: i128,
+            expected_obj: Object,
         }
 
         let test_cases = vec![
             TestCase {
                 input: "5",
-                expected_value: 5,
+                expected_obj: Object::Int(5),
             },
             TestCase {
                 input: "10",
-                expected_value: 10,
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "true",
+                expected_obj: TRUE,
+            },
+            TestCase {
+                input: "false",
+                expected_obj: FALSE,
+            },
+            TestCase {
+                input: "!true",
+                expected_obj: FALSE,
+            },
+            TestCase {
+                input: "!false",
+                expected_obj: TRUE,
+            },
+            TestCase {
+                input: "!5",
+                expected_obj: FALSE,
+            },
+            TestCase {
+                input: "!!true",
+                expected_obj: TRUE,
+            },
+            TestCase {
+                input: "!!false",
+                expected_obj: FALSE,
+            },
+            TestCase {
+                input: "!!5",
+                expected_obj: TRUE,
+            },
+            TestCase {
+                input: "-5",
+                expected_obj: Object::Int(-5),
+            },
+            TestCase {
+                input: "--5",
+                expected_obj: Object::Int(5),
+            },
+            TestCase {
+                input: "5 + 5 + 5 + 5 - 10",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "2 * 2 * 2 * 2 * 2",
+                expected_obj: Object::Int(32),
+            },
+            TestCase {
+                input: "-50 + 100 + -50",
+                expected_obj: Object::Int(0),
+            },
+            TestCase {
+                input: "5 * 2 + 10",
+                expected_obj: Object::Int(20),
+            },
+            TestCase {
+                input: "5 + 2 * 10",
+                expected_obj: Object::Int(25),
+            },
+            TestCase {
+                input: "20 + 2 * -10",
+                expected_obj: Object::Int(0),
+            },
+            TestCase {
+                input: "50 / 2 * 2 + 10",
+                expected_obj: Object::Int(60),
+            },
+            TestCase {
+                input: "2 * (5 + 10)",
+                expected_obj: Object::Int(30),
+            },
+            TestCase {
+                input: "3 * 3 * 3 + 10",
+                expected_obj: Object::Int(37),
+            },
+            TestCase {
+                input: "3 * (3 * 3) + 10",
+                expected_obj: Object::Int(37),
+            },
+            TestCase {
+                input: "(5 + 10 * 2 + 15 / 3) * 2 + -10",
+                expected_obj: Object::Int(50),
             },
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input).unwrap();
+            let program = parse_program(test_case.input).unwrap();
             let mut evaluator = Evaluator::new();
 
-            if let Object::Int(value) = evaluator.eval_statement(program.statements.pop().unwrap())
-            {
-                assert_eq!(value, test_case.expected_value);
-            } else {
-                panic!("Failed to eval to Int");
-            }
+            let obj = evaluator.eval(program);
+            assert_eq!(obj, test_case.expected_obj);
         }
     }
 }

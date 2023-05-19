@@ -59,7 +59,9 @@ The following errors occured while parsing:
             }
         };
 
-        evaluator.eval(program);
+        let object = evaluator.eval(program);
+
+        println!("{}", object.to_string());
     }
 }
 
