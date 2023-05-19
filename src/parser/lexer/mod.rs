@@ -8,7 +8,7 @@ pub struct Lexer {
     pub ch: char,
 }
 
-const NUL: char = '\u{0}';
+const NULL: char = '\u{0}';
 
 fn is_letter(ch: char) -> bool {
     'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
@@ -28,7 +28,7 @@ impl Lexer {
             input,
             position: 0,
             read_position: 0,
-            ch: NUL,
+            ch: NULL,
         };
         lexer.read_char();
         lexer
@@ -64,14 +64,14 @@ impl Lexer {
 
     fn peek_char(&self) -> char {
         if self.read_position >= self.input.len() {
-            return NUL;
+            return NULL;
         }
         return self.input[self.read_position];
     }
 
     fn read_char(&mut self) {
         if self.read_position >= self.input.len() {
-            self.ch = NUL;
+            self.ch = NULL;
         } else {
             self.ch = self.input[self.read_position];
         }
@@ -137,7 +137,7 @@ impl Lexer {
             '>' => {
                 tok = Token::GreaterThan;
             }
-            NUL => {
+            NULL => {
                 tok = Token::EOF;
             }
             _ => {
