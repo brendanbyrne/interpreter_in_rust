@@ -153,7 +153,7 @@ impl Parser {
         {
             if let Some(op) = Parser::get_infix_operator(&self.peek_token) {
                 self.next_token(); // Move to infix operator
-                expression = self.parse_infix_expression(expression, op)?;
+                expression = self.parse_infix_expression(op, expression)?;
             } else {
                 return Ok(expression);
             }
@@ -168,8 +168,8 @@ impl Parser {
             Token::Int(value) => return self.parse_prefix_int(value.to_string()),
             Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
             Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
-            Token::True => return Ok(ast::Expression::Boolean(true)),
-            Token::False => return Ok(ast::Expression::Boolean(false)),
+            Token::True => return Ok(ast::Expression::Bool(true)),
+            Token::False => return Ok(ast::Expression::Bool(false)),
             Token::LParen => return self.parse_group(),
             Token::If => return self.parse_if(),
             Token::Function => return self.parse_function_literal(),
@@ -194,8 +194,8 @@ impl Parser {
 
     fn parse_infix_expression(
         &mut self,
-        lhs: ast::Expression,
         op: ast::InfixOperator,
+        lhs: ast::Expression,
     ) -> Result<ast::Expression> {
         let precedence = Parser::precedence(&self.cur_token);
 
@@ -208,7 +208,7 @@ impl Parser {
         } else {
             self.next_token(); // drop operator
             let rhs = self.parse_expression(precedence)?;
-            Ok(ast::Expression::Infix(Box::new(lhs), op, Box::new(rhs)))
+            Ok(ast::Expression::Infix(op, Box::new(lhs), Box::new(rhs)))
         }
     }
 
@@ -506,12 +506,12 @@ mod tests {
             TestCase {
                 input: "!true",
                 op: ast::PrefixOperator::Not,
-                value: ast::Expression::Boolean(true),
+                value: ast::Expression::Bool(true),
             },
             TestCase {
                 input: "!false",
                 op: ast::PrefixOperator::Not,
-                value: ast::Expression::Boolean(false),
+                value: ast::Expression::Bool(false),
             },
         ];
 
@@ -533,77 +533,77 @@ mod tests {
     fn infix_expression() -> Result<()> {
         struct TestCase<'a> {
             input: &'a str,
+            op: ast::InfixOperator,
             lhs: ast::Expression,
             rhs: ast::Expression,
-            op: ast::InfixOperator,
         }
 
         let test_cases = vec![
             TestCase {
                 input: "5 + 5",
+                op: ast::InfixOperator::Plus,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::Plus,
             },
             TestCase {
                 input: "5 - 5",
+                op: ast::InfixOperator::Minus,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::Minus,
             },
             TestCase {
                 input: "5 * 5",
+                op: ast::InfixOperator::Multiply,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::Multiply,
             },
             TestCase {
                 input: "5 / 5",
+                op: ast::InfixOperator::Divide,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::Divide,
             },
             TestCase {
                 input: "5 > 5",
+                op: ast::InfixOperator::GreaterThan,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::GreaterThan,
             },
             TestCase {
                 input: "5 < 5",
+                op: ast::InfixOperator::LessThan,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::LessThan,
             },
             TestCase {
                 input: "5 == 5",
+                op: ast::InfixOperator::Equal,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::Equal,
             },
             TestCase {
                 input: "5 != 5",
+                op: ast::InfixOperator::NotEqual,
                 lhs: ast::Expression::Int(5),
                 rhs: ast::Expression::Int(5),
-                op: ast::InfixOperator::NotEqual,
             },
             TestCase {
                 input: "true == true",
-                lhs: ast::Expression::Boolean(true),
-                rhs: ast::Expression::Boolean(true),
                 op: ast::InfixOperator::Equal,
+                lhs: ast::Expression::Bool(true),
+                rhs: ast::Expression::Bool(true),
             },
             TestCase {
                 input: "true != false",
-                lhs: ast::Expression::Boolean(true),
-                rhs: ast::Expression::Boolean(false),
                 op: ast::InfixOperator::NotEqual,
+                lhs: ast::Expression::Bool(true),
+                rhs: ast::Expression::Bool(false),
             },
             TestCase {
                 input: "false == false",
-                lhs: ast::Expression::Boolean(false),
-                rhs: ast::Expression::Boolean(false),
                 op: ast::InfixOperator::Equal,
+                lhs: ast::Expression::Bool(false),
+                rhs: ast::Expression::Bool(false),
             },
         ];
 
@@ -611,7 +611,7 @@ mod tests {
             let mut program = parse_program(test_case.input)?;
             assert_eq!(program.statements.len(), 1);
 
-            if let ast::Expression::Infix(lhs, op, rhs) = get_expression(&mut program) {
+            if let ast::Expression::Infix(op, lhs, rhs) = get_expression(&mut program) {
                 assert_eq!(op, test_case.op);
                 assert_eq!(*lhs, test_case.lhs);
                 assert_eq!(*rhs, test_case.rhs);
@@ -765,8 +765,8 @@ mod tests {
         use ast::Statement::{Block, Expression};
 
         let expected_cond = Infix(
-            Box::new(Identifier("x".to_owned())),
             LessThan,
+            Box::new(Identifier("x".to_owned())),
             Box::new(Identifier("y".to_owned())),
         );
 
@@ -792,8 +792,8 @@ mod tests {
         use ast::Statement::{Block, Expression};
 
         let expected_cond = Infix(
-            Box::new(Identifier("x".to_owned())),
             LessThan,
+            Box::new(Identifier("x".to_owned())),
             Box::new(Identifier("y".to_owned())),
         );
 
@@ -826,8 +826,8 @@ mod tests {
         let y = Identifier("y".to_owned());
         let expected_params = vec![Box::new(x.clone()), Box::new(y.clone())];
         let expected_body = Block(vec![Box::new(Expression(Infix(
-            Box::new(x),
             Plus,
+            Box::new(x),
             Box::new(y),
         )))]);
 
@@ -889,8 +889,8 @@ mod tests {
         let expected_name = Identifier("add".to_owned());
         let expected_inputs = vec![
             Box::new(Int(1)),
-            Box::new(Infix(Box::new(Int(2)), Multiply, Box::new(Int(3)))),
-            Box::new(Infix(Box::new(Int(4)), Plus, Box::new(Int(5)))),
+            Box::new(Infix(Multiply, Box::new(Int(2)), Box::new(Int(3)))),
+            Box::new(Infix(Plus, Box::new(Int(4)), Box::new(Int(5)))),
         ];
 
         if let ast::Expression::Call(name, inputs) = get_expression(&mut program) {

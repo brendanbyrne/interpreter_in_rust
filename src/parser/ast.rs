@@ -51,8 +51,8 @@ pub enum Expression {
     Identifier(String),
     Int(i128),
     Prefix(PrefixOperator, Box<Expression>),
-    Infix(Box<Expression>, InfixOperator, Box<Expression>),
-    Boolean(bool),
+    Infix(InfixOperator, Box<Expression>, Box<Expression>),
+    Bool(bool),
     If(Box<Expression>, Box<Statement>),
     IfElse(Box<Expression>, Box<Statement>, Box<Statement>),
     Function(Vec<Box<Expression>>, Box<Statement>),
@@ -68,7 +68,7 @@ impl ToString for Expression {
             Prefix(op, expression) => {
                 format!("({}{})", op.to_string(), (*expression).to_string())
             }
-            Infix(lhs, op, rhs) => {
+            Infix(op, lhs, rhs) => {
                 format!(
                     "({} {} {})",
                     (*lhs).to_string(),
@@ -76,7 +76,7 @@ impl ToString for Expression {
                     (*rhs).to_string()
                 )
             }
-            Boolean(value) => format!("{}", value),
+            Bool(value) => format!("{}", value),
             If(cond, if_true) => {
                 format!("if ({}) {}", (*cond).to_string(), (*if_true).to_string())
             }
