@@ -61,7 +61,7 @@ impl Parser {
 
         while self.cur_token != Token::EOF {
             match self.parse_statement() {
-                Ok(statement) => program.statements.push(statement),
+                Ok(statement) => program.statements.push(Box::new(statement)),
                 Err(e) => self.errors.push(e),
             };
             self.next_token();
@@ -411,7 +411,7 @@ mod tests {
             let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
-            if let ast::Statement::Let(name, expression) = program.statements.pop().unwrap() {
+            if let ast::Statement::Let(name, expression) = *program.statements.pop().unwrap() {
                 assert_eq!(name, test_case.expected_name);
                 assert_eq!(expression, test_case.expected_expression);
             } else {
@@ -446,7 +446,7 @@ mod tests {
             let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
-            if let ast::Statement::Return(expression) = program.statements.pop().unwrap() {
+            if let ast::Statement::Return(expression) = *program.statements.pop().unwrap() {
                 assert_eq!(expression, test_case.expected_expression);
             } else {
                 panic!("Expected type ast::Statement::Return");
@@ -889,7 +889,7 @@ mod tests {
     }
 
     fn get_expression(program: &mut Program) -> ast::Expression {
-        if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
+        if let ast::Statement::Expression(expression) = *program.statements.pop().unwrap() {
             return expression;
         } else {
             panic!("Expected ast::Statement::Expression");

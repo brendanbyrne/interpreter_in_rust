@@ -134,7 +134,8 @@ impl fmt::Display for Statement {
 }
 
 pub struct Program {
-    pub statements: Vec<Statement>,
+    // Vec<Box<>> so field can call the same functions as a Statement::Block
+    pub statements: Vec<Box<Statement>>,
 }
 
 impl Program {
@@ -152,7 +153,7 @@ impl fmt::Display for Program {
             "{}",
             self.statements
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect::<Vec<String>>()
                 .join("\n")
         )
@@ -166,9 +167,10 @@ mod tests {
     #[test]
     fn to_string() {
         let mut program = Program::new();
-        program
-            .statements
-            .push(Statement::Let("foo".to_owned(), Expression::Int(5)));
+        program.statements.push(Box::new(Statement::Let(
+            "foo".to_owned(),
+            Expression::Int(5),
+        )));
 
         assert_eq!("let foo = 5;".to_owned(), program.to_string());
     }

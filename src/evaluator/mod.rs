@@ -19,31 +19,24 @@ impl Evaluator {
 
     /// Evaluate a program
     pub fn eval(&mut self, program: Program) -> Result<Object> {
+        self.statements(program.statements)
+    }
+
+    fn statements(&mut self, statements: Vec<Box<ast::Statement>>) -> Result<Object> {
         let mut obj = NULL;
-        for statement in program.statements {
-            obj = self.statement(statement)?;
+        for statement in statements {
+            obj = self.statement(*statement)?;
             if let Object::Return(return_obj) = obj {
                 return Ok(*return_obj);
             }
         }
-        return Ok(obj);
+        Ok(obj)
     }
 
     fn statement(&mut self, statement: ast::Statement) -> Result<Object> {
         match statement {
             ast::Statement::Expression(expr) => self.expression(expr),
-            ast::Statement::Block(statements) => {
-                // QUESTION: Is there a way to make this drier?
-                // Vec<Box<T>> -> Vec<T> or something
-                let mut obj = NULL;
-                for statement in statements {
-                    obj = self.statement(*statement)?;
-                    if let Object::Return(return_obj) = obj {
-                        return Ok(*return_obj);
-                    }
-                }
-                Ok(obj)
-            }
+            ast::Statement::Block(statements) => self.statements(statements),
             ast::Statement::Return(expr) => Ok(Object::Return(Box::new(self.expression(expr)?))),
             _ => Err(Error::UnhandledStatement(statement)),
         }
