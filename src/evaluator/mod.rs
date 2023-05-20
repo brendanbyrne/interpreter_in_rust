@@ -302,6 +302,22 @@ mod tests {
                 input: "9; return 2 * 5; 9;",
                 expected_obj: Object::Int(10),
             },
+            TestCase {
+                input: "let a = 5; a;",
+                expected_obj: Object::Int(5),
+            },
+            TestCase {
+                input: "let a = 5 * 5; a;",
+                expected_obj: Object::Int(25),
+            },
+            TestCase {
+                input: "let a = 5; let b = a; b;",
+                expected_obj: Object::Int(25),
+            },
+            TestCase {
+                input: "let a = 5; let b = a; let c = a + b + 5; c;",
+                expected_obj: Object::Int(15),
+            },
         ];
 
         for test_case in test_cases {
