@@ -6,7 +6,7 @@ use crate::evaluator::object::Object;
 use crate::parser::ast;
 
 /// Types of error the evaluator can produce
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     UnhandledStatement(ast::Statement),
     UnhandledExpression(ast::Expression),

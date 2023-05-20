@@ -312,4 +312,67 @@ mod tests {
             assert_eq!(obj, test_case.expected_obj);
         }
     }
+
+    #[test]
+    fn errors() {
+        struct TestCase<'a> {
+            input: &'a str,
+            expected_error: Error,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                input: "5 + true;",
+                expected_error: Error::InfixTypeMismatch(
+                    ast::InfixOperator::Plus,
+                    Object::Int(5),
+                    Object::Bool(true),
+                ),
+            },
+            TestCase {
+                input: "5 + true; 5;",
+                expected_error: Error::InfixTypeMismatch(
+                    ast::InfixOperator::Plus,
+                    Object::Int(5),
+                    TRUE,
+                ),
+            },
+            TestCase {
+                input: "-true",
+                expected_error: Error::UnsupportedNegate(TRUE),
+            },
+            TestCase {
+                input: "true + false;",
+                expected_error: Error::InfixTypeMismatch(ast::InfixOperator::Plus, TRUE, FALSE),
+            },
+            TestCase {
+                input: "5; true + false; 5;",
+                expected_error: Error::InfixTypeMismatch(ast::InfixOperator::Plus, TRUE, FALSE),
+            },
+            TestCase {
+                input: "if (10 > 1) { true + false; }",
+                expected_error: Error::InfixTypeMismatch(ast::InfixOperator::Plus, TRUE, FALSE),
+            },
+            TestCase {
+                input: "
+if (10 > 1) {
+  if (10 > 1) {
+    return true + false;
+  }
+
+  return 1;
+}",
+                expected_error: Error::InfixTypeMismatch(ast::InfixOperator::Plus, TRUE, FALSE),
+            },
+        ];
+
+        for test_case in test_cases {
+            let program = parse_program(test_case.input).unwrap();
+            let mut evaluator = Evaluator::new();
+            assert_eq!(
+                evaluator.eval(program).unwrap_err(),
+                test_case.expected_error
+            );
+        }
+    }
 }
