@@ -19,6 +19,9 @@ impl Evaluator {
         let mut obj = Object::Null;
         for statement in program.statements {
             obj = self.statement(statement);
+            if let Object::Return(return_obj) = obj {
+                return *return_obj;
+            }
         }
         return obj;
     }
@@ -27,12 +30,18 @@ impl Evaluator {
         match statement {
             ast::Statement::Expression(expr) => self.expression(expr),
             ast::Statement::Block(statements) => {
+                // QUESTION: Is there a way to make this drier?
+                // Vec<Box<T>> -> Vec<T> or something
                 let mut obj = NULL;
                 for statement in statements {
                     obj = self.statement(*statement);
+                    if let Object::Return(return_obj) = obj {
+                        return *return_obj;
+                    }
                 }
                 obj
             }
+            ast::Statement::Return(expr) => Object::Return(Box::new(self.expression(expr))),
             _ => NULL,
         }
     }
@@ -93,6 +102,7 @@ impl Evaluator {
                     FALSE
                 }
             }
+            Object::Return(_) => panic!("The parser should enforce that this can't be reached."),
         }
     }
 
@@ -262,6 +272,22 @@ mod tests {
             },
             TestCase {
                 input: "if (1 < 2) { 10 } else { 20 }",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "return 10;",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "return 10; 9;",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "return 2 * 5;",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "9; return 2 * 5; 9;",
                 expected_obj: Object::Int(10),
             },
         ];

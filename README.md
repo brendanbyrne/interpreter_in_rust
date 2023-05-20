@@ -21,14 +21,31 @@ true == true;
 
 ## if statements
 
+Non-zero integers are considered true.
+
 ```Monkey
-if ( condition ) {
-  a statement;
+if ( expression ) {
+  expression
 } else {
- a different statement;
+  expression
 }
 ```
 
-Non-zero integers are considered true.
+## return statements
 
-No support for variables yet
+```Monkey
+return expression;
+```
+
+```Monkey
+if (true) {
+  return 1;
+}
+
+not_reached;
+```
+
+## Not supported yet
+
+* variables
+* error handling

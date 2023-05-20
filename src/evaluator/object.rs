@@ -6,6 +6,7 @@ pub enum Object {
     Null,
     Int(i128),
     Bool(bool),
+    Return(Box<Object>),
 }
 
 // QUESTION: Does this actually do what I think it does?
@@ -24,6 +25,7 @@ impl ToString for Object {
             Null => "null".to_owned(),
             Int(value) => format!("{}", value),
             Bool(value) => format!("{}", value),
+            Return(value) => format!("return {}", (*value).to_string()),
         }
     }
 }
@@ -48,5 +50,6 @@ pub fn is_truthy(obj: &Object) -> bool {
         &NULL => false,
         Object::Int(value) => value != &0,
         Object::Bool(value) => *value,
+        Object::Return(_) => panic!("The parser should enforce that this can't be reached."),
     }
 }
