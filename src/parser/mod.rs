@@ -1,6 +1,7 @@
 //! Implementation of the Monkey language parser
 
-use crate::error::Result;
+mod error;
+use error::{Error, Result};
 
 mod lexer;
 use lexer::{Lexer, Token};
@@ -33,7 +34,7 @@ struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Token,
-    errors: Vec<String>,
+    errors: Vec<Error>,
 }
 
 impl Parser {
@@ -61,13 +62,19 @@ impl Parser {
         while self.cur_token != Token::EOF {
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(statement),
-                Err(msg) => self.errors.push(msg),
+                Err(e) => self.errors.push(e),
             };
             self.next_token();
         }
 
         if !self.errors.is_empty() {
-            return Err(self.errors.join("\n"));
+            return Err(Error::ParsingFailed(
+                self.errors
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            ));
         }
 
         Ok(program)
@@ -96,9 +103,9 @@ impl Parser {
         if let Token::Ident(name) = self.cur_token.clone() {
             Ok(name)
         } else {
-            Err(Parser::peek_error_msg(
-                &Token::Ident("<name>".to_owned()),
-                &self.cur_token,
+            Err(Error::PeekMismatch(
+                Token::Ident("<name>".to_owned()),
+                self.cur_token.clone(),
             ))
         }
     }
@@ -171,7 +178,7 @@ impl Parser {
             Token::LParen => return self.parse_group(),
             Token::If => return self.parse_if(),
             Token::Function => return self.parse_function_literal(),
-            _ => return Err(format!("No prefix parser for {:?}", self.cur_token)),
+            _ => return Err(Error::NoPrefixDefined(self.cur_token.clone())),
         };
     }
 
@@ -179,7 +186,7 @@ impl Parser {
         if let Ok(value) = input.parse::<i128>() {
             Ok(ast::Expression::Int(value))
         } else {
-            Err(format!("Could not parse '{}' as an integer", input))
+            Err(Error::AsIntFailed(input))
         }
     }
 
@@ -281,7 +288,7 @@ impl Parser {
         while self.cur_token != Token::RBrace && self.cur_token != Token::EOF {
             match self.parse_statement() {
                 Ok(statement) => statements.push(Box::new(statement)),
-                Err(msg) => self.errors.push(msg),
+                Err(e) => self.errors.push(e),
             };
             self.next_token();
         }
@@ -333,15 +340,8 @@ impl Parser {
             self.next_token();
             Ok(())
         } else {
-            Err(Parser::peek_error_msg(token, &self.peek_token))
+            Err(Error::PeekMismatch(token.clone(), self.peek_token.clone()))
         }
-    }
-
-    fn peek_error_msg(expected: &Token, found: &Token) -> String {
-        format!(
-            "expected next token to be {:?}, got {:?} instead",
-            expected, found
-        )
     }
 
     fn get_infix_operator(token: &Token) -> Option<ast::InfixOperator> {

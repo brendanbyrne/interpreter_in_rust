@@ -1,3 +1,6 @@
+///! The kinds of tokens that are allowed by Monkey's lexer
+
+/// Valid tokens in Monkey
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Illegal(char),
@@ -42,6 +45,7 @@ fn keyword_check(literal: &String) -> Option<Token> {
     }
 }
 
+/// Returns either a keywork or indentifier token
 pub fn lookup_identifier(literal: String) -> Token {
     if let Some(token) = keyword_check(&literal) {
         return token;
