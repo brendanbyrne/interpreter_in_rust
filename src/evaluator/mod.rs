@@ -1,5 +1,6 @@
 //! Powers the eval portion of the REPL cycle
 
+use crate::error::Result;
 use crate::parser::{ast, Program};
 
 mod object;
@@ -15,18 +16,18 @@ impl Evaluator {
     }
 
     /// Evaluate a program
-    pub fn eval(&mut self, program: Program) -> Object {
-        let mut obj = Object::Null;
+    pub fn eval(&mut self, program: Program) -> Result<Object> {
+        let mut obj = NULL;
         for statement in program.statements {
-            obj = self.statement(statement);
+            obj = self.statement(statement)?;
             if let Object::Return(return_obj) = obj {
-                return *return_obj;
+                return Ok(*return_obj);
             }
         }
-        return obj;
+        return Ok(obj);
     }
 
-    fn statement(&mut self, statement: ast::Statement) -> Object {
+    fn statement(&mut self, statement: ast::Statement) -> Result<Object> {
         match statement {
             ast::Statement::Expression(expr) => self.expression(expr),
             ast::Statement::Block(statements) => {
@@ -34,109 +35,125 @@ impl Evaluator {
                 // Vec<Box<T>> -> Vec<T> or something
                 let mut obj = NULL;
                 for statement in statements {
-                    obj = self.statement(*statement);
+                    obj = self.statement(*statement)?;
                     if let Object::Return(return_obj) = obj {
-                        return *return_obj;
+                        return Ok(*return_obj);
                     }
                 }
-                obj
+                Ok(obj)
             }
-            ast::Statement::Return(expr) => Object::Return(Box::new(self.expression(expr))),
-            _ => NULL,
+            ast::Statement::Return(expr) => Ok(Object::Return(Box::new(self.expression(expr)?))),
+            _ => Err("Unhandled Statement".to_owned()),
         }
     }
 
-    fn expression(&mut self, expression: ast::Expression) -> Object {
+    fn expression(&mut self, expression: ast::Expression) -> Result<Object> {
         match expression {
-            ast::Expression::Int(value) => Object::Int(value),
+            ast::Expression::Int(value) => Ok(Object::Int(value)),
             ast::Expression::Bool(value) => {
                 if value {
-                    TRUE
+                    Ok(TRUE)
                 } else {
-                    FALSE
+                    Ok(FALSE)
                 }
             }
             ast::Expression::Prefix(op, rhs) => {
-                let obj = self.expression(*rhs);
-                self.prefix(op, obj)
+                let obj = self.expression(*rhs)?;
+                Ok(self.prefix(op, obj)?)
             }
             ast::Expression::Infix(op, lhs, rhs) => {
-                let lhs_obj = self.expression(*lhs);
-                let rhs_obj = self.expression(*rhs);
-                self.infix(op, lhs_obj, rhs_obj)
+                let lhs_obj = self.expression(*lhs)?;
+                let rhs_obj = self.expression(*rhs)?;
+                Ok(self.infix(op, lhs_obj, rhs_obj)?)
             }
             ast::Expression::If(condition, if_true) => {
-                let mut obj = NULL;
-                if object::is_truthy(&self.expression(*condition)) {
-                    obj = self.statement(*if_true);
+                if object::is_truthy(&self.expression(*condition)?) {
+                    return Ok(self.statement(*if_true)?);
                 }
-                obj
+                Ok(NULL)
             }
             ast::Expression::IfElse(condition, if_true, if_false) => {
-                if object::is_truthy(&self.expression(*condition)) {
-                    return self.statement(*if_true);
+                let mut obj = self.expression(*condition)?;
+                if object::is_truthy(&obj) {
+                    obj = self.statement(*if_true)?;
                 } else {
-                    return self.statement(*if_false);
+                    obj = self.statement(*if_false)?;
                 }
+                Ok(obj)
             }
-            _ => NULL,
+            _ => Err("Unhandled Expression".to_owned()),
         }
     }
 
-    fn prefix(&mut self, op: ast::PrefixOperator, rhs: Object) -> Object {
+    fn prefix(&mut self, op: ast::PrefixOperator, rhs: Object) -> Result<Object> {
         match op {
-            ast::PrefixOperator::Not => self.not(rhs),
-            ast::PrefixOperator::Negate => self.negate(rhs),
+            ast::PrefixOperator::Not => Ok(self.not(rhs)?),
+            ast::PrefixOperator::Negate => {
+                let obj = self.negate(rhs)?;
+                Ok(obj)
+            }
         }
     }
 
-    fn not(&mut self, rhs: Object) -> Object {
+    fn not(&mut self, rhs: Object) -> Result<Object> {
         match rhs {
-            TRUE => FALSE,
-            FALSE => TRUE,
-            NULL => TRUE,
+            TRUE => Ok(FALSE),
+            FALSE => Ok(TRUE),
+            NULL => Ok(TRUE),
             Object::Int(value) => {
                 if value == 0 {
-                    TRUE
+                    Ok(TRUE)
                 } else {
-                    FALSE
+                    Ok(FALSE)
                 }
             }
-            Object::Return(_) => panic!("The parser should enforce that this can't be reached."),
+            Object::Return(_) => {
+                Err("The parser should enforce that this can't be reached.".to_owned())
+            }
         }
     }
 
-    fn negate(&mut self, rhs: Object) -> Object {
+    fn negate(&mut self, rhs: Object) -> Result<Object> {
         match rhs {
-            Object::Int(value) => Object::Int(-value),
-            _ => NULL,
+            Object::Int(value) => Ok(Object::Int(-value)),
+            _ => Err(format!("Negate doesn't support type {:?}", rhs)),
         }
     }
 
-    fn infix(&mut self, op: ast::InfixOperator, lhs: Object, rhs: Object) -> Object {
+    fn infix(&mut self, op: ast::InfixOperator, lhs: Object, rhs: Object) -> Result<Object> {
         use ast::InfixOperator::*;
         match op {
-            Equal => Object::Bool(lhs == rhs),
-            NotEqual => Object::Bool(lhs == rhs),
+            Equal => Ok(Object::Bool(lhs == rhs)),
+            NotEqual => Ok(Object::Bool(lhs == rhs)),
             Call => panic!("This path should never be executed."),
-            _ => self.infix_math(op, lhs, rhs),
+            _ => Ok(self.infix_math(op, lhs, rhs)?),
         }
     }
 
-    fn infix_math(&mut self, op: ast::InfixOperator, lhs_obj: Object, rhs_obj: Object) -> Object {
-        if let Some((lhs, rhs)) = object::get_infix_ints(lhs_obj, rhs_obj) {
+    fn infix_math(
+        &mut self,
+        op: ast::InfixOperator,
+        lhs_obj: Object,
+        rhs_obj: Object,
+    ) -> Result<Object> {
+        if let Some((lhs, rhs)) = object::get_infix_ints(lhs_obj.clone(), rhs_obj.clone()) {
             use ast::InfixOperator::*;
             match op {
-                Plus => Object::Int(lhs + rhs),
-                Minus => Object::Int(lhs - rhs),
-                Multiply => Object::Int(lhs * rhs),
-                Divide => Object::Int(lhs / rhs),
-                LessThan => Object::Bool(lhs < rhs),
-                GreaterThan => Object::Bool(lhs > rhs),
+                Plus => Ok(Object::Int(lhs + rhs)),
+                Minus => Ok(Object::Int(lhs - rhs)),
+                Multiply => Ok(Object::Int(lhs * rhs)),
+                Divide => Ok(Object::Int(lhs / rhs)),
+                LessThan => Ok(Object::Bool(lhs < rhs)),
+                GreaterThan => Ok(Object::Bool(lhs > rhs)),
                 _ => panic!("This path should never be executed."),
             }
         } else {
-            NULL
+            Err(format!(
+                "Type mismatch: {:?} {} {:?}",
+                lhs_obj,
+                op.to_string(),
+                rhs_obj
+            ))
         }
     }
 }
@@ -147,7 +164,7 @@ mod tests {
     use crate::parser::parse_program;
 
     #[test]
-    fn eval() {
+    fn eval() -> Result<()> {
         struct TestCase<'a> {
             input: &'a str,
             expected_obj: Object,
@@ -293,11 +310,12 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let program = parse_program(test_case.input).unwrap();
+            let program = parse_program(test_case.input)?;
             let mut evaluator = Evaluator::new();
 
-            let obj = evaluator.eval(program);
+            let obj = evaluator.eval(program)?;
             assert_eq!(obj, test_case.expected_obj);
         }
+        Ok(())
     }
 }

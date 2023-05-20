@@ -7,6 +7,8 @@
 use std::error::Error;
 use std::io::{self, Write};
 
+mod error;
+
 mod parser;
 use parser::{parse_program, Program};
 
@@ -46,22 +48,26 @@ pub fn start() {
     loop {
         let program = match read() {
             Ok(program) => program,
-            Err(error_msg) => {
-                let error_msg = format!(
+            Err(msg) => {
+                let full_msg = format!(
                     "{}
 Ran into some monkey business.
 The following errors occured while parsing:
 {}",
-                    MONKEY_FACE, error_msg
+                    MONKEY_FACE, msg
                 );
-                println!("{}", error_msg);
+                println!("{}", full_msg);
                 continue;
             }
         };
 
-        let object = evaluator.eval(program);
-
-        println!("{}", object.to_string());
+        match evaluator.eval(program) {
+            Ok(obj) => println!("{}", obj.to_string()),
+            Err(msg) => {
+                println!("{}", msg);
+                continue;
+            }
+        }
     }
 }
 

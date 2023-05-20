@@ -1,14 +1,12 @@
 //! Implementation of the Monkey language parser
 
-use std::result;
+use crate::error::Result;
 
 mod lexer;
 use lexer::{Lexer, Token};
 
 pub mod ast;
 pub use ast::Program;
-
-type Result<T> = result::Result<T, String>;
 
 /// Returns a valid program or the parser error message
 ///

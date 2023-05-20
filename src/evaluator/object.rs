@@ -1,7 +1,7 @@
 //! Objects to be used in the object system
 
 /// These are the types of objects that can be represented in the object system
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Object {
     Null,
     Int(i128),
@@ -45,6 +45,9 @@ pub fn get_infix_ints(lhs: Object, rhs: Object) -> Option<(i128, i128)> {
     }
 }
 
+/// An approximate truth evaluator
+///
+/// false, NULL, and 0 are false
 pub fn is_truthy(obj: &Object) -> bool {
     match obj {
         &NULL => false,
