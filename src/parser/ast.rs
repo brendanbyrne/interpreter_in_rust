@@ -1,3 +1,8 @@
+//! The abstract syntax tree Monkey
+
+use std::fmt;
+
+/// Operators that support the `foo operator bar` format
 #[derive(Clone, Debug, PartialEq)]
 pub enum InfixOperator {
     Plus,
@@ -11,10 +16,10 @@ pub enum InfixOperator {
     Call,
 }
 
-impl ToString for InfixOperator {
-    fn to_string(&self) -> String {
+impl fmt::Display for InfixOperator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InfixOperator::*;
-        let value = match self {
+        let operator = match self {
             Plus => "+",
             Minus => "-",
             Multiply => "*",
@@ -25,7 +30,7 @@ impl ToString for InfixOperator {
             NotEqual => "!=",
             Call => panic!("It shouldn't be possible to print a Call this way."),
         };
-        value.to_string()
+        write!(f, "{}", operator)
     }
 }
 
@@ -35,14 +40,14 @@ pub enum PrefixOperator {
     Not,
 }
 
-impl ToString for PrefixOperator {
-    fn to_string(&self) -> String {
+impl fmt::Display for PrefixOperator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use PrefixOperator::*;
-        let value = match self {
+        let operator = match self {
             Negate => "-",
             Not => "!",
         };
-        value.to_string()
+        write!(f, "{}", operator)
     }
 }
 
@@ -59,34 +64,18 @@ pub enum Expression {
     Call(Box<Expression>, Vec<Box<Expression>>),
 }
 
-impl ToString for Expression {
-    fn to_string(&self) -> String {
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Expression::*;
-        let string = match self {
+        let expression = match self {
             Identifier(name) => name.clone(),
             Int(value) => format!("{}", value),
-            Prefix(op, expression) => {
-                format!("({}{})", op.to_string(), (*expression).to_string())
-            }
-            Infix(op, lhs, rhs) => {
-                format!(
-                    "({} {} {})",
-                    (*lhs).to_string(),
-                    op.to_string(),
-                    (*rhs).to_string()
-                )
-            }
+            Prefix(op, expression) => format!("({}{})", op, *expression),
+            Infix(op, lhs, rhs) => format!("({} {} {})", *lhs, op, *rhs),
             Bool(value) => format!("{}", value),
-            If(cond, if_true) => {
-                format!("if ({}) {}", (*cond).to_string(), (*if_true).to_string())
-            }
+            If(cond, if_true) => format!("if ({}) {}", *cond, *if_true),
             IfElse(cond, if_true, if_false) => {
-                format!(
-                    "if ({}) {} else {}",
-                    (*cond).to_string(),
-                    (*if_true).to_string(),
-                    (*if_false).to_string()
-                )
+                format!("if ({}) {} else {}", *cond, *if_true, *if_false)
             }
             Function(params, body) => {
                 format!(
@@ -110,7 +99,7 @@ impl ToString for Expression {
                 )
             }
         };
-        string
+        write!(f, "{}", expression)
     }
 }
 
@@ -122,19 +111,13 @@ pub enum Statement {
     Block(Vec<Box<Statement>>),
 }
 
-impl ToString for Statement {
-    fn to_string(&self) -> String {
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Statement::*;
         let statement = match self {
-            Let(name, expression) => {
-                format!("let {} = {};", name, expression.to_string())
-            }
-            Return(expression) => {
-                format!("return {};", expression.to_string())
-            }
-            Expression(expression) => {
-                format!("{};", expression.to_string())
-            }
+            Let(name, expression) => format!("let {} = {};", name, expression),
+            Return(expression) => format!("return {};", expression),
+            Expression(expression) => format!("{};", expression),
             Block(statements) => {
                 format!(
                     "{{\n{}\n}}",
@@ -146,7 +129,7 @@ impl ToString for Statement {
                 )
             }
         };
-        statement
+        write!(f, "{}", statement)
     }
 }
 
@@ -162,13 +145,17 @@ impl Program {
     }
 }
 
-impl ToString for Program {
-    fn to_string(&self) -> String {
-        self.statements
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>()
-            .join("\n")
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.statements
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }
 
@@ -181,8 +168,8 @@ mod tests {
         let mut program = Program::new();
         program
             .statements
-            .push(Statement::Let("foo".to_string(), Expression::Int(5)));
+            .push(Statement::Let("foo".to_owned(), Expression::Int(5)));
 
-        assert_eq!("let foo = 5;".to_string(), program.to_string());
+        assert_eq!("let foo = 5;".to_owned(), program.to_string());
     }
 }

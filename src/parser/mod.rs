@@ -382,7 +382,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn let_statements() -> Result<()> {
+    fn let_statements() {
         struct TestCase<'a> {
             input: &'a str,
             expected_name: &'a str,
@@ -408,21 +408,20 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input)?;
+            let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
             if let ast::Statement::Let(name, expression) = program.statements.pop().unwrap() {
                 assert_eq!(name, test_case.expected_name);
                 assert_eq!(expression, test_case.expected_expression);
             } else {
-                return Err("Expected type ast::Statement::Let".to_owned());
+                panic!("Expected type ast::Statement::Let");
             }
         }
-        Ok(())
     }
 
     #[test]
-    fn return_statements() -> Result<()> {
+    fn return_statements() {
         struct TestCase<'a> {
             input: &'a str,
             expected_expression: ast::Expression,
@@ -444,46 +443,43 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input)?;
+            let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
             if let ast::Statement::Return(expression) = program.statements.pop().unwrap() {
                 assert_eq!(expression, test_case.expected_expression);
             } else {
-                return Err("Expected type ast::Statement::Return".to_owned());
+                panic!("Expected type ast::Statement::Return");
             }
         }
-        Ok(())
     }
 
     #[test]
-    fn identifier_expression() -> Result<()> {
-        let mut program = parse_program("foobar")?;
+    fn identifier_expression() {
+        let mut program = parse_program("foobar").unwrap();
         assert_eq!(program.statements.len(), 1);
 
         if let ast::Expression::Identifier(name) = get_expression(&mut program) {
             assert_eq!("foobar", name);
         } else {
-            return Err("Expected type ast::Expression::Indentifier".to_owned());
+            panic!("Expected type ast::Expression::Indentifier");
         }
-        Ok(())
     }
 
     #[test]
-    fn integer_literal_expression() -> Result<()> {
-        let mut program = parse_program("5")?;
+    fn integer_literal_expression() {
+        let mut program = parse_program("5").unwrap();
         assert_eq!(program.statements.len(), 1);
 
         if let ast::Expression::Int(value) = get_expression(&mut program) {
             assert_eq!(5, value);
         } else {
-            return Err("Expected type ast::Expression::Indentifier".to_owned());
+            panic!("Expected type ast::Expression::Indentifier");
         }
-        Ok(())
     }
 
     #[test]
-    fn prefix_expression() -> Result<()> {
+    fn prefix_expression() {
         struct TestCase<'a> {
             input: &'a str,
             op: ast::PrefixOperator,
@@ -514,21 +510,20 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input)?;
+            let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
             if let ast::Expression::Prefix(op, nested_expression) = get_expression(&mut program) {
                 assert_eq!(op, test_case.op);
                 assert_eq!(*nested_expression, test_case.value);
             } else {
-                return Err("Expected type ast::Expression::Prefix".to_owned());
+                panic!("Expected type ast::Expression::Prefix");
             }
         }
-        Ok(())
     }
 
     #[test]
-    fn infix_expression() -> Result<()> {
+    fn infix_expression() {
         struct TestCase<'a> {
             input: &'a str,
             op: ast::InfixOperator,
@@ -606,7 +601,7 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input)?;
+            let mut program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), 1);
 
             if let ast::Expression::Infix(op, lhs, rhs) = get_expression(&mut program) {
@@ -614,14 +609,13 @@ mod tests {
                 assert_eq!(*lhs, test_case.lhs);
                 assert_eq!(*rhs, test_case.rhs);
             } else {
-                return Err("Expected type ast::Expression::Infix".to_owned());
+                panic!("Expected type ast::Expression::Infix");
             }
         }
-        Ok(())
     }
 
     #[test]
-    fn operator_precedence() -> Result<()> {
+    fn operator_precedence() {
         struct TestCase<'a> {
             input: &'a str,
             expected: &'a str,
@@ -747,16 +741,15 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let program = parse_program(test_case.input)?;
+            let program = parse_program(test_case.input).unwrap();
             assert_eq!(program.statements.len(), test_case.len);
             assert_eq!(program.to_string(), test_case.expected);
         }
-        Ok(())
     }
 
     #[test]
-    fn if_expression() -> Result<()> {
-        let mut program = parse_program("if (x < y) { x }")?;
+    fn if_expression() {
+        let mut program = parse_program("if (x < y) { x }").unwrap();
 
         use ast::Expression::{Identifier, Infix};
         use ast::InfixOperator::LessThan;
@@ -776,14 +769,13 @@ mod tests {
             assert_eq!(*cond, expected_cond);
             assert_eq!(*if_true, expected_if_true);
         } else {
-            return Err("Expected If expression".to_owned());
+            panic!("Expected If expression");
         }
-        Ok(())
     }
 
     #[test]
-    fn if_else_expression() -> Result<()> {
-        let mut program = parse_program("if (x < y) { x } else { y }")?;
+    fn if_else_expression() {
+        let mut program = parse_program("if (x < y) { x } else { y }").unwrap();
 
         use ast::Expression::{Identifier, Infix};
         use ast::InfixOperator::LessThan;
@@ -806,14 +798,13 @@ mod tests {
             assert_eq!(*if_true, expected_if_true);
             assert_eq!(*if_false, expected_if_false);
         } else {
-            return Err("Expected ast::Expression::If expression".to_owned());
+            panic!("Expected ast::Expression::If expression");
         }
-        Ok(())
     }
 
     #[test]
-    fn function_literal_expression() -> Result<()> {
-        let mut program = parse_program("fn(x, y) { x + y; }")?;
+    fn function_literal_expression() {
+        let mut program = parse_program("fn(x, y) { x + y; }").unwrap();
         assert_eq!(program.statements.len(), 1);
 
         use ast::Expression::{Identifier, Infix};
@@ -833,13 +824,12 @@ mod tests {
             assert_eq!(params, expected_params);
             assert_eq!(*body, expected_body);
         } else {
-            return Err("Expected ast::Expression::Function".to_owned());
+            panic!("Expected ast::Expression::Function");
         }
-        Ok(())
     }
 
     #[test]
-    fn function_parameters() -> Result<()> {
+    fn function_parameters() {
         struct TestCase<'a> {
             input: &'a str,
             expected_params: Vec<Box<ast::Expression>>,
@@ -865,20 +855,19 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let mut program = parse_program(test_case.input)?;
+            let mut program = parse_program(test_case.input).unwrap();
 
             if let ast::Expression::Function(params, _) = get_expression(&mut program) {
                 assert_eq!(params, test_case.expected_params);
             } else {
-                return Err("Expected ast::Expression::Function".to_owned());
+                panic!("Expected ast::Expression::Function");
             }
         }
-        Ok(())
     }
 
     #[test]
-    fn call_expression() -> Result<()> {
-        let mut program = parse_program("add(1, 2 * 3, 4 + 5);")?;
+    fn call_expression() {
+        let mut program = parse_program("add(1, 2 * 3, 4 + 5);").unwrap();
         assert_eq!(program.statements.len(), 1);
 
         use ast::Expression::{Identifier, Infix, Int};
@@ -895,9 +884,8 @@ mod tests {
             assert_eq!(*name, expected_name);
             assert_eq!(inputs, expected_inputs);
         } else {
-            return Err("Expected ast::Expression::Call".to_owned());
+            panic!("Expected ast::Expression::Call");
         }
-        Ok(())
     }
 
     fn get_expression(program: &mut Program) -> ast::Expression {

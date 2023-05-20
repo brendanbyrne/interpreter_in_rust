@@ -1,6 +1,8 @@
 //! Powers the eval portion of the REPL cycle
 
-use crate::error::Result;
+mod error;
+use error::{Error, Result};
+
 use crate::parser::{ast, Program};
 
 mod object;
@@ -43,7 +45,7 @@ impl Evaluator {
                 Ok(obj)
             }
             ast::Statement::Return(expr) => Ok(Object::Return(Box::new(self.expression(expr)?))),
-            _ => Err("Unhandled Statement".to_owned()),
+            _ => Err(Error::UnhandledStatement(statement)),
         }
     }
 
@@ -81,7 +83,7 @@ impl Evaluator {
                 }
                 Ok(obj)
             }
-            _ => Err("Unhandled Expression".to_owned()),
+            _ => Err(Error::UnhandledExpression(expression)),
         }
     }
 
@@ -107,16 +109,14 @@ impl Evaluator {
                     Ok(FALSE)
                 }
             }
-            Object::Return(_) => {
-                Err("The parser should enforce that this can't be reached.".to_owned())
-            }
+            Object::Return(obj) => Err(Error::UnexpectedReturn(*obj)),
         }
     }
 
     fn negate(&mut self, rhs: Object) -> Result<Object> {
         match rhs {
             Object::Int(value) => Ok(Object::Int(-value)),
-            _ => Err(format!("Negate doesn't support type {:?}", rhs)),
+            _ => Err(Error::UnsupportedNegate(rhs)),
         }
     }
 
@@ -148,12 +148,7 @@ impl Evaluator {
                 _ => panic!("This path should never be executed."),
             }
         } else {
-            Err(format!(
-                "Type mismatch: {:?} {} {:?}",
-                lhs_obj,
-                op.to_string(),
-                rhs_obj
-            ))
+            Err(Error::InfixTypeMismatch(op, lhs_obj, rhs_obj))
         }
     }
 }
@@ -164,7 +159,7 @@ mod tests {
     use crate::parser::parse_program;
 
     #[test]
-    fn eval() -> Result<()> {
+    fn eval() {
         struct TestCase<'a> {
             input: &'a str,
             expected_obj: Object,
@@ -310,12 +305,11 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let program = parse_program(test_case.input)?;
+            let program = parse_program(test_case.input).unwrap();
             let mut evaluator = Evaluator::new();
 
-            let obj = evaluator.eval(program)?;
+            let obj = evaluator.eval(program).unwrap();
             assert_eq!(obj, test_case.expected_obj);
         }
-        Ok(())
     }
 }

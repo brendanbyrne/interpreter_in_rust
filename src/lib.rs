@@ -7,8 +7,6 @@
 use std::error::Error;
 use std::io::{self, Write};
 
-mod error;
-
 mod parser;
 use parser::{parse_program, Program};
 

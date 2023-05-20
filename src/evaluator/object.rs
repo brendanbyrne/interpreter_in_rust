@@ -1,5 +1,7 @@
 //! Objects to be used in the object system
 
+use std::fmt;
+
 /// These are the types of objects that can be represented in the object system
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Object {
@@ -15,18 +17,16 @@ pub const NULL: Object = Object::Null;
 pub const TRUE: Object = Object::Bool(true);
 pub const FALSE: Object = Object::Bool(false);
 
-impl ToString for Object {
-    fn to_string(&self) -> String {
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Object::*;
-        // QUESTION: Is there a way to do like....
-        //     Any(value) => format!("{}", value)
-        // for any type except Null?
-        match self {
+        let obj = match self {
             Null => "null".to_owned(),
             Int(value) => format!("{}", value),
             Bool(value) => format!("{}", value),
-            Return(value) => format!("return {}", (*value).to_string()),
-        }
+            Return(value) => format!("return {}", *value),
+        };
+        write!(f, "{}", obj)
     }
 }
 
