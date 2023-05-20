@@ -26,6 +26,13 @@ impl Evaluator {
     fn statement(&mut self, statement: ast::Statement) -> Object {
         match statement {
             ast::Statement::Expression(expr) => self.expression(expr),
+            ast::Statement::Block(statements) => {
+                let mut obj = NULL;
+                for statement in statements {
+                    obj = self.statement(*statement);
+                }
+                obj
+            }
             _ => NULL,
         }
     }
@@ -48,6 +55,20 @@ impl Evaluator {
                 let lhs_obj = self.expression(*lhs);
                 let rhs_obj = self.expression(*rhs);
                 self.infix(op, lhs_obj, rhs_obj)
+            }
+            ast::Expression::If(condition, if_true) => {
+                let mut obj = NULL;
+                if object::is_truthy(&self.expression(*condition)) {
+                    obj = self.statement(*if_true);
+                }
+                obj
+            }
+            ast::Expression::IfElse(condition, if_true, if_false) => {
+                if object::is_truthy(&self.expression(*condition)) {
+                    return self.statement(*if_true);
+                } else {
+                    return self.statement(*if_false);
+                }
             }
             _ => NULL,
         }
@@ -214,6 +235,34 @@ mod tests {
             TestCase {
                 input: "(5 + 10 * 2 + 15 / 3) * 2 + -10",
                 expected_obj: Object::Int(50),
+            },
+            TestCase {
+                input: "if (true) { 10 }",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "if (false) { 10 }",
+                expected_obj: NULL,
+            },
+            TestCase {
+                input: "if (1) { 10 }",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "if (1 < 2) { 10 }",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "if (1 > 2) { 10 }",
+                expected_obj: NULL,
+            },
+            TestCase {
+                input: "if (1 > 2) { 10 } else { 20 }",
+                expected_obj: Object::Int(20),
+            },
+            TestCase {
+                input: "if (1 < 2) { 10 } else { 20 }",
+                expected_obj: Object::Int(10),
             },
         ];
 

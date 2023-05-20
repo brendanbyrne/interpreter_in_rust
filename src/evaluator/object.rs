@@ -42,3 +42,11 @@ pub fn get_infix_ints(lhs: Object, rhs: Object) -> Option<(i128, i128)> {
         None
     }
 }
+
+pub fn is_truthy(obj: &Object) -> bool {
+    match obj {
+        &NULL => false,
+        Object::Int(value) => value != &0,
+        Object::Bool(value) => *value,
+    }
+}
