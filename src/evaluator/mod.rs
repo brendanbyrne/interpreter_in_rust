@@ -1,7 +1,7 @@
 //! Powers the eval portion of the REPL cycle
 
 mod environment;
-use environment::{Environment, Object, FALSE, NULL, TRUE};
+use environment::{Environment, Object, FALSE, NOOP, NULL, TRUE};
 
 mod error;
 use error::{Error, Result};
@@ -9,12 +9,16 @@ use error::{Error, Result};
 use crate::parser::{ast, Program};
 
 /// Contains the state of the execuated program
-pub struct Evaluator {}
+pub struct Evaluator {
+    env: Environment,
+}
 
 impl Evaluator {
     /// Returns an initialize Evaluator
     pub fn new() -> Self {
-        Evaluator {}
+        Evaluator {
+            env: Environment::new(),
+        }
     }
 
     /// Evaluate a program
@@ -38,7 +42,11 @@ impl Evaluator {
             ast::Statement::Expression(expr) => self.expression(expr),
             ast::Statement::Block(statements) => self.statements(statements),
             ast::Statement::Return(expr) => Ok(Object::Return(Box::new(self.expression(expr)?))),
-            _ => Err(Error::UnhandledStatement(statement)),
+            ast::Statement::Let(id, expr) => {
+                let obj = self.expression(expr)?;
+                self.env.set(id, obj);
+                Ok(NOOP)
+            }
         }
     }
 
@@ -65,7 +73,7 @@ impl Evaluator {
                 if environment::object::is_truthy(&self.expression(*condition)?) {
                     return Ok(self.statement(*if_true)?);
                 }
-                Ok(NULL)
+                Ok(NOOP)
             }
             ast::Expression::IfElse(condition, if_true, if_false) => {
                 let mut obj = self.expression(*condition)?;
@@ -76,6 +84,7 @@ impl Evaluator {
                 }
                 Ok(obj)
             }
+            ast::Expression::Identifier(id) => self.env.get(id),
             _ => Err(Error::UnhandledExpression(expression)),
         }
     }
@@ -103,6 +112,7 @@ impl Evaluator {
                 }
             }
             Object::Return(obj) => Err(Error::UnexpectedReturn(*obj)),
+            NOOP => panic!("Nothing should have the value NOOP"),
         }
     }
 
@@ -259,7 +269,7 @@ mod tests {
             },
             TestCase {
                 input: "if (false) { 10 }",
-                expected_obj: NULL,
+                expected_obj: NOOP,
             },
             TestCase {
                 input: "if (1) { 10 }",
@@ -271,7 +281,7 @@ mod tests {
             },
             TestCase {
                 input: "if (1 > 2) { 10 }",
-                expected_obj: NULL,
+                expected_obj: NOOP,
             },
             TestCase {
                 input: "if (1 > 2) { 10 } else { 20 }",
@@ -307,7 +317,7 @@ mod tests {
             },
             TestCase {
                 input: "let a = 5; let b = a; b;",
-                expected_obj: Object::Int(25),
+                expected_obj: Object::Int(5),
             },
             TestCase {
                 input: "let a = 5; let b = a; let c = a + b + 5; c;",
