@@ -2,7 +2,7 @@ use std::error;
 use std::fmt;
 use std::result;
 
-use crate::evaluator::object::Object;
+use crate::evaluator::environment::Object;
 use crate::parser::ast;
 
 /// Types of error the evaluator can produce
@@ -13,6 +13,7 @@ pub enum Error {
     UnexpectedReturn(Object),
     UnsupportedNegate(Object),
     InfixTypeMismatch(ast::InfixOperator, Object, Object),
+    IdNotFound(String),
 }
 
 /// Result type used in the parser
@@ -33,6 +34,7 @@ impl fmt::Display for Error {
             UnexpectedReturn(obj) => format!("Unexpected {}", obj),
             UnsupportedNegate(rhs) => format!("Negate doesn't support type {:?}", rhs),
             InfixTypeMismatch(op, lhs, rhs) => format!("{:?} {} {:?}", lhs, op, rhs),
+            IdNotFound(id) => format!("Identifier not found {}", id),
         };
         write!(f, "{}", error_msg)
     }

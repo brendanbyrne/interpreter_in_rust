@@ -1,12 +1,12 @@
 //! Powers the eval portion of the REPL cycle
 
+mod environment;
+use environment::{Environment, Object, FALSE, NULL, TRUE};
+
 mod error;
 use error::{Error, Result};
 
 use crate::parser::{ast, Program};
-
-mod object;
-use object::{Object, FALSE, NULL, TRUE};
 
 /// Contains the state of the execuated program
 pub struct Evaluator {}
@@ -62,14 +62,14 @@ impl Evaluator {
                 Ok(self.infix(op, lhs_obj, rhs_obj)?)
             }
             ast::Expression::If(condition, if_true) => {
-                if object::is_truthy(&self.expression(*condition)?) {
+                if environment::object::is_truthy(&self.expression(*condition)?) {
                     return Ok(self.statement(*if_true)?);
                 }
                 Ok(NULL)
             }
             ast::Expression::IfElse(condition, if_true, if_false) => {
                 let mut obj = self.expression(*condition)?;
-                if object::is_truthy(&obj) {
+                if environment::object::is_truthy(&obj) {
                     obj = self.statement(*if_true)?;
                 } else {
                     obj = self.statement(*if_false)?;
@@ -129,7 +129,9 @@ impl Evaluator {
         lhs_obj: Object,
         rhs_obj: Object,
     ) -> Result<Object> {
-        if let Some((lhs, rhs)) = object::get_infix_ints(lhs_obj.clone(), rhs_obj.clone()) {
+        if let Some((lhs, rhs)) =
+            environment::object::get_infix_ints(lhs_obj.clone(), rhs_obj.clone())
+        {
             use ast::InfixOperator::*;
             match op {
                 Plus => Ok(Object::Int(lhs + rhs)),
