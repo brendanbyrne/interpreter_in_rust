@@ -7,6 +7,7 @@ pub use object::{Object, FALSE, NOOP, NULL, TRUE};
 
 use crate::evaluator::{Error, Result};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Environment {
     store: HashMap<String, Object>,
 }

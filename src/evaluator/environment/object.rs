@@ -2,14 +2,21 @@
 
 use std::fmt;
 
+use crate::evaluator::Environment; // this feel a little wrong
+use crate::parser::ast;
+
 /// These are the types of objects that can be represented in the object system
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Object {
-    Noop, // Special intruction to the interpreter to do nothing
+    // Instructions to the interpreter
+    Noop,
+    Return(Box<Object>),
+
+    // Values in the system
     Null,
     Int(i128),
     Bool(bool),
-    Return(Box<Object>),
+    Function(Vec<String>, ast::Statement, Box<Environment>),
 }
 
 // QUESTION: Does this actually do what I think it does?
@@ -28,6 +35,7 @@ impl fmt::Display for Object {
             Int(value) => format!("{}", value),
             Bool(value) => format!("{}", value),
             Return(value) => format!("return {}", *value),
+            Function(params, body, _) => format!("fn ({}) {}", params.join(", "), body),
         };
         write!(f, "{}", obj)
     }
@@ -52,11 +60,13 @@ pub fn get_infix_ints(lhs: Object, rhs: Object) -> Option<(i128, i128)> {
 ///
 /// false, NULL, and 0 are false
 pub fn is_truthy(obj: &Object) -> bool {
+    use Object::*;
     match obj {
         &NULL => false,
-        Object::Int(value) => value != &0,
-        Object::Bool(value) => *value,
-        Object::Return(_) => panic!("The parser should enforce that this can't be reached."),
+        Int(value) => value != &0,
+        Bool(value) => *value,
+        Return(_) => panic!("The parser should enforce that this can't be reached."),
         &NOOP => panic!("Nothing should have the value of NOOP"),
+        Function(_, _, _) => panic!("This should never be allowed."),
     }
 }

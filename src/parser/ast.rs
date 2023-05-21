@@ -3,7 +3,7 @@
 use std::fmt;
 
 /// Operators that support the `foo operator bar` format
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
     Plus,
     Minus,
@@ -34,7 +34,7 @@ impl fmt::Display for InfixOperator {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PrefixOperator {
     Negate,
     Not,
@@ -51,7 +51,7 @@ impl fmt::Display for PrefixOperator {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expression {
     Identifier(String),
     Int(i128),
@@ -103,7 +103,7 @@ impl fmt::Display for Expression {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
     Let(String, Expression),
     Return(Expression),

@@ -10,14 +10,14 @@ use crate::parser::{ast, Program};
 
 /// Contains the state of the execuated program
 pub struct Evaluator {
-    env: Environment,
+    env: Box<Environment>,
 }
 
 impl Evaluator {
     /// Returns an initialize Evaluator
     pub fn new() -> Self {
         Evaluator {
-            env: Environment::new(),
+            env: Box::new(Environment::new()),
         }
     }
 
@@ -85,6 +85,13 @@ impl Evaluator {
                 Ok(obj)
             }
             ast::Expression::Identifier(id) => self.env.get(id),
+            ast::Expression::Function(args, body) => Ok(Object::Function(
+                args.iter()
+                    .map(|a| (*a).to_string())
+                    .collect::<Vec<String>>(),
+                *body,
+                self.env.clone(),
+            )),
             _ => Err(Error::UnhandledExpression(expression)),
         }
     }
@@ -100,19 +107,21 @@ impl Evaluator {
     }
 
     fn not(&mut self, rhs: Object) -> Result<Object> {
+        use Object::*;
         match rhs {
             TRUE => Ok(FALSE),
             FALSE => Ok(TRUE),
             NULL => Ok(TRUE),
-            Object::Int(value) => {
+            Int(value) => {
                 if value == 0 {
                     Ok(TRUE)
                 } else {
                     Ok(FALSE)
                 }
             }
-            Object::Return(obj) => Err(Error::UnexpectedReturn(*obj)),
+            Return(obj) => Err(Error::UnexpectedReturn(*obj)),
             NOOP => panic!("Nothing should have the value NOOP"),
+            Function(_, _, _) => panic!("Not of a function doesn't mean anything."),
         }
     }
 
@@ -323,6 +332,20 @@ mod tests {
                 input: "let a = 5; let b = a; let c = a + b + 5; c;",
                 expected_obj: Object::Int(15),
             },
+            TestCase {
+                input: "fn(x) { x + 2; };",
+                expected_obj: Object::Function(
+                    vec!["x".to_owned()],
+                    ast::Statement::Block(vec![Box::new(ast::Statement::Expression(
+                        ast::Expression::Infix(
+                            ast::InfixOperator::Plus,
+                            Box::new(ast::Expression::Identifier("x".to_owned())),
+                            Box::new(ast::Expression::Int(2)),
+                        ),
+                    ))]),
+                    Box::new(Environment::new()),
+                ),
+            },
         ];
 
         for test_case in test_cases {
@@ -384,6 +407,10 @@ if (10 > 1) {
   return 1;
 }",
                 expected_error: Error::InfixTypeMismatch(ast::InfixOperator::Plus, TRUE, FALSE),
+            },
+            TestCase {
+                input: "foobar",
+                expected_error: Error::IdNotFound("foobar".to_owned()),
             },
         ];
 
