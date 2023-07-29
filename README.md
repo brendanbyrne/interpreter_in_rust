@@ -1,5 +1,10 @@
 # Writing an interpreter in rust
 
+## TODO
+- [ ] Convert lexer and parser to work on streams/iters
+- [ ] Come to a conclusion on if Noop is necessary, or just null
+- [ ] Make `parse_program` work with str& and String
+
 I finally have the E in REPL hooked in to the loop.  It's a very basic E.  Only
 supporting the basic operations.
 
