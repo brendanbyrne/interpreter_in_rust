@@ -14,7 +14,7 @@ pub struct Evaluator {
 }
 
 impl Evaluator {
-    /// Returns an initialize Evaluator
+    /// Returns an initialized Evaluator
     pub fn new() -> Self {
         Evaluator {
             env: Box::new(Environment::new()),

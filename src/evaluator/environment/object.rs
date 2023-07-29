@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use crate::evaluator::Environment; // this feel a little wrong
+use crate::evaluator::Environment; // this feels a little wrong
 use crate::parser::ast;
 
 /// These are the types of objects that can be represented in the object system
