@@ -5,10 +5,11 @@
 - [ ] Come to a conclusion on if Noop is necessary, or just null
 - [ ] Make `parse_program` work with str& and String
 
+## REPL Loop
 I finally have the E in REPL hooked in to the loop.  It's a very basic E.  Only
 supporting the basic operations.
 
-## Math operations with literals
+### Math operations with literals
 
 ```Monkey
 1 + 1
@@ -17,14 +18,14 @@ supporting the basic operations.
 1 / 1
 ```
 
-## Logic operations with literals
+### Logic operations with literals
 
 ```Monkey
 true != false;
 true == true;
 ```
 
-## if statements
+### if statements
 
 Non-zero integers are considered true.
 
@@ -36,7 +37,7 @@ if ( expression ) {
 }
 ```
 
-## return statements
+### return statements
 
 ```Monkey
 return expression;
@@ -50,7 +51,7 @@ if (true) {
 not_reached;
 ```
 
-## Not supported yet
+### Not supported yet
 
 * variables
 * error handling
