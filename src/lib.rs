@@ -76,6 +76,7 @@ fn read() -> Result<Program, Box<dyn Error>> {
     print!("{}", PROMPT);
     io::stdout().flush()?;
 
+    // Note: Ctrl-D (i.e. read_line(...) == 0) is treated as null
     let mut line = String::new();
     io::stdin().read_line(&mut line)?;
 
