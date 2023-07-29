@@ -60,7 +60,7 @@ The following errors occured while parsing:
         };
 
         match evaluator.eval(program) {
-            Ok(obj) => println!("{}", obj.to_string()),
+            Ok(obj) => println!("{}", obj),
             Err(msg) => {
                 println!("{}", msg);
                 continue;
