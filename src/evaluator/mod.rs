@@ -1,7 +1,10 @@
 //! Powers the eval portion of the REPL cycle
 
+use std::ops::Deref;
+use std::rc::Rc;
+
 mod environment;
-use environment::{Environment, Object, FALSE, NOOP, NULL, TRUE};
+use environment::{Env, Object, FALSE, NOOP, NULL, TRUE};
 
 mod error;
 use error::{Error, Result};
@@ -10,26 +13,25 @@ use crate::parser::{ast, Program};
 
 /// Contains the state of the execuated program
 pub struct Evaluator {
-    env: Box<Environment>,
+    env: Env,
 }
 
 impl Evaluator {
     /// Returns an initialized Evaluator
     pub fn new() -> Self {
-        Evaluator {
-            env: Box::new(Environment::new()),
-        }
+        Self { env: Env::new() }
     }
 
     /// Evaluate a program
     pub fn eval(&mut self, program: Program) -> Result<Object> {
-        self.statements(program.statements)
+        Evaluator::statements(program.statements, &mut self.env)
     }
 
-    fn statements(&mut self, statements: Vec<Box<ast::Statement>>) -> Result<Object> {
+    /// Evaluate the statements for the given environment
+    fn statements(statements: Vec<Box<ast::Statement>>, env: &mut Env) -> Result<Object> {
         let mut obj = NULL;
         for statement in statements {
-            obj = self.statement(*statement)?;
+            obj = Evaluator::statement(*statement, env)?;
             if let Object::Return(return_obj) = obj {
                 return Ok(*return_obj);
             }
@@ -37,20 +39,22 @@ impl Evaluator {
         Ok(obj)
     }
 
-    fn statement(&mut self, statement: ast::Statement) -> Result<Object> {
+    fn statement(statement: ast::Statement, env: &mut Env) -> Result<Object> {
         match statement {
-            ast::Statement::Expression(expr) => self.expression(expr),
-            ast::Statement::Block(statements) => self.statements(statements),
-            ast::Statement::Return(expr) => Ok(Object::Return(Box::new(self.expression(expr)?))),
+            ast::Statement::Expression(expr) => Evaluator::expression(expr, env),
+            ast::Statement::Block(statements) => Evaluator::statements(statements, env),
+            ast::Statement::Return(expr) => {
+                Ok(Object::Return(Box::new(Evaluator::expression(expr, env)?)))
+            }
             ast::Statement::Let(id, expr) => {
-                let obj = self.expression(expr)?;
-                self.env.set(id, obj);
+                let obj = Evaluator::expression(expr, env)?;
+                env.set(id, Rc::new(obj));
                 Ok(NOOP)
             }
         }
     }
 
-    fn expression(&mut self, expression: ast::Expression) -> Result<Object> {
+    fn expression(expression: ast::Expression, env: &mut Env) -> Result<Object> {
         match expression {
             ast::Expression::Int(value) => Ok(Object::Int(value)),
             ast::Expression::Bool(value) => {
@@ -61,52 +65,72 @@ impl Evaluator {
                 }
             }
             ast::Expression::Prefix(op, rhs) => {
-                let obj = self.expression(*rhs)?;
-                Ok(self.prefix(op, obj)?)
+                let obj = Evaluator::expression(*rhs, env)?;
+                Ok(Evaluator::prefix(op, obj)?)
             }
             ast::Expression::Infix(op, lhs, rhs) => {
-                let lhs_obj = self.expression(*lhs)?;
-                let rhs_obj = self.expression(*rhs)?;
-                Ok(self.infix(op, lhs_obj, rhs_obj)?)
+                let lhs_obj = Evaluator::expression(*lhs, env)?;
+                let rhs_obj = Evaluator::expression(*rhs, env)?;
+                Ok(Evaluator::infix(op, lhs_obj, rhs_obj)?)
             }
             ast::Expression::If(condition, if_true) => {
-                if environment::object::is_truthy(&self.expression(*condition)?) {
-                    return Ok(self.statement(*if_true)?);
+                if environment::object::is_truthy(&Evaluator::expression(*condition, env)?) {
+                    return Ok(Evaluator::statement(*if_true, env)?);
                 }
                 Ok(NOOP)
             }
             ast::Expression::IfElse(condition, if_true, if_false) => {
-                let mut obj = self.expression(*condition)?;
+                let mut obj = Evaluator::expression(*condition, env)?;
                 if environment::object::is_truthy(&obj) {
-                    obj = self.statement(*if_true)?;
+                    obj = Evaluator::statement(*if_true, env)?;
                 } else {
-                    obj = self.statement(*if_false)?;
+                    obj = Evaluator::statement(*if_false, env)?;
                 }
                 Ok(obj)
             }
-            ast::Expression::Identifier(id) => self.env.get(id),
+            ast::Expression::Identifier(id) => match env.get(id.clone()) {
+                Some(rc_obj) => Ok(rc_obj.deref().clone()),
+                None => Err(Error::IdNotFound(id)),
+            },
             ast::Expression::Function(args, body) => Ok(Object::Function(
                 args.iter()
                     .map(|a| (*a).to_string())
                     .collect::<Vec<String>>(),
                 *body,
-                self.env.clone(),
+                env.nest(),
             )),
-            _ => Err(Error::UnhandledExpression(expression)),
+            ast::Expression::Call(id, arg_exprs) => {
+                let expr = Evaluator::expression(*id, env)?;
+
+                if let Object::Function(arg_names, body, mut func_env) = expr {
+                    if arg_names.len() != arg_exprs.len() {
+                        return Err(Error::WrongNumberArgs(arg_names.len(), arg_exprs.len()));
+                    }
+
+                    func_env.clear_top_scope(); // TODO: Verify that this is necessary
+                    for (n, e) in arg_names.into_iter().zip(arg_exprs) {
+                        let expr = Evaluator::expression(*e, env)?;
+                        func_env.set(n, Rc::new(expr));
+                    }
+
+                    return Evaluator::statement(body, &mut func_env);
+                }
+                panic!("Expected Object::Function, got: {}", expr);
+            }
         }
     }
 
-    fn prefix(&mut self, op: ast::PrefixOperator, rhs: Object) -> Result<Object> {
+    fn prefix(op: ast::PrefixOperator, rhs: Object) -> Result<Object> {
         match op {
-            ast::PrefixOperator::Not => Ok(self.not(rhs)?),
+            ast::PrefixOperator::Not => Ok(Evaluator::not(rhs)?),
             ast::PrefixOperator::Negate => {
-                let obj = self.negate(rhs)?;
+                let obj = Evaluator::negate(rhs)?;
                 Ok(obj)
             }
         }
     }
 
-    fn not(&mut self, rhs: Object) -> Result<Object> {
+    fn not(rhs: Object) -> Result<Object> {
         use Object::*;
         match rhs {
             TRUE => Ok(FALSE),
@@ -125,29 +149,24 @@ impl Evaluator {
         }
     }
 
-    fn negate(&mut self, rhs: Object) -> Result<Object> {
+    fn negate(rhs: Object) -> Result<Object> {
         match rhs {
             Object::Int(value) => Ok(Object::Int(-value)),
             _ => Err(Error::UnsupportedNegate(rhs)),
         }
     }
 
-    fn infix(&mut self, op: ast::InfixOperator, lhs: Object, rhs: Object) -> Result<Object> {
+    fn infix(op: ast::InfixOperator, lhs: Object, rhs: Object) -> Result<Object> {
         use ast::InfixOperator::*;
         match op {
             Equal => Ok(Object::Bool(lhs == rhs)),
             NotEqual => Ok(Object::Bool(lhs == rhs)),
             Call => panic!("This path should never be executed."),
-            _ => Ok(self.infix_math(op, lhs, rhs)?),
+            _ => Ok(Evaluator::infix_math(op, lhs, rhs)?),
         }
     }
 
-    fn infix_math(
-        &mut self,
-        op: ast::InfixOperator,
-        lhs_obj: Object,
-        rhs_obj: Object,
-    ) -> Result<Object> {
+    fn infix_math(op: ast::InfixOperator, lhs_obj: Object, rhs_obj: Object) -> Result<Object> {
         if let Some((lhs, rhs)) =
             environment::object::get_infix_ints(lhs_obj.clone(), rhs_obj.clone())
         {
@@ -343,8 +362,35 @@ mod tests {
                             Box::new(ast::Expression::Int(2)),
                         ),
                     ))]),
-                    Box::new(Environment::new()),
+                    Env::new().nest(),
                 ),
+            },
+            TestCase {
+                input: "let identity = fn(x) { x; }; identity(5);",
+                expected_obj: Object::Int(5),
+            },
+            TestCase {
+                input: "let identity = fn(x) { return x; }; identity(5);",
+                expected_obj: Object::Int(5),
+            },
+            TestCase {
+                input: "let double = fn(x) { x * 2; }; double(5);",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "let add = fn(x, y) { x + y; }; add(5, 5);",
+                expected_obj: Object::Int(10),
+            },
+            TestCase {
+                input: "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
+                expected_obj: Object::Int(20),
+            },
+            TestCase {
+                input: "
+let new_adder = fn(x) { fn(y) { x + y; }; };
+let add_two = new_adder(2);
+add_two(2);",
+                expected_obj: Object::Int(4),
             },
         ];
 

@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use crate::evaluator::Environment; // this feels a little wrong
+use crate::evaluator::environment::Env;
 use crate::parser::ast;
 
 /// These are the types of objects that can be represented in the object system
@@ -16,7 +16,7 @@ pub enum Object {
     Null,
     Int(i128),
     Bool(bool),
-    Function(Vec<String>, ast::Statement, Box<Environment>),
+    Function(Vec<String>, ast::Statement, Env),
 }
 
 // QUESTION: Does this actually do what I think it does?
