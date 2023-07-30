@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 mod environment;
-use environment::{Env, Object, FALSE, NOOP, NULL, TRUE};
+use environment::{Env, Object, FALSE, NOOP, TRUE};
 
 mod error;
 use error::{Error, Result};
@@ -29,7 +29,7 @@ impl Evaluator {
 
     /// Evaluate the statements for the given environment
     fn statements(statements: Vec<Box<ast::Statement>>, env: &mut Env) -> Result<Object> {
-        let mut obj = NULL;
+        let mut obj = NOOP;
         for statement in statements {
             obj = Evaluator::statement(*statement, env)?;
             if let Object::Return(return_obj) = obj {
@@ -135,7 +135,6 @@ impl Evaluator {
         match rhs {
             TRUE => Ok(FALSE),
             FALSE => Ok(TRUE),
-            NULL => Ok(TRUE),
             Int(value) => {
                 if value == 0 {
                     Ok(TRUE)

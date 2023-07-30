@@ -2,7 +2,6 @@
 
 ## TODO
 - [ ] Convert lexer and parser to work on streams/iters
-- [ ] Come to a conclusion on if Noop is necessary, or just null
 - [ ] Make `parse_program` work with str& and String
 
 ## REPL Loop

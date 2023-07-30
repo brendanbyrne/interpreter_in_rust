@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub mod object;
-pub use object::{Object, FALSE, NOOP, NULL, TRUE};
+pub use object::{Object, FALSE, NOOP, TRUE};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Env {

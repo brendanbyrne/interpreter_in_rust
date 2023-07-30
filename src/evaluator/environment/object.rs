@@ -13,7 +13,6 @@ pub enum Object {
     Return(Box<Object>),
 
     // Values in the system
-    Null,
     Int(i128),
     Bool(bool),
     Function(Vec<String>, ast::Statement, Env),
@@ -22,7 +21,6 @@ pub enum Object {
 // QUESTION: Does this actually do what I think it does?
 // Special case preallocations for only possible combinations of these objects
 pub const NOOP: Object = Object::Noop;
-pub const NULL: Object = Object::Null;
 pub const TRUE: Object = Object::Bool(true);
 pub const FALSE: Object = Object::Bool(false);
 
@@ -31,7 +29,6 @@ impl fmt::Display for Object {
         use Object::*;
         let obj = match self {
             Noop => "".to_owned(),
-            Null => "null".to_owned(),
             Int(value) => format!("{}", value),
             Bool(value) => format!("{}", value),
             Return(value) => format!("return {}", *value),
@@ -62,7 +59,6 @@ pub fn get_infix_ints(lhs: Object, rhs: Object) -> Option<(i128, i128)> {
 pub fn is_truthy(obj: &Object) -> bool {
     use Object::*;
     match obj {
-        &NULL => false,
         Int(value) => value != &0,
         Bool(value) => *value,
         Return(_) => panic!("The parser should enforce that this can't be reached."),
