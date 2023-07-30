@@ -6,8 +6,8 @@
 - [ ] Make `parse_program` work with str& and String
 
 ## REPL Loop
-I finally have the E in REPL hooked in to the loop.  It's a very basic E.  Only
-supporting the basic operations.
+I finally have the REPL hooked into the loop. It supports the following
+operations.
 
 ### Math operations with literals
 
@@ -51,7 +51,28 @@ if (true) {
 not_reached;
 ```
 
+### variables
+
+```Monkey
+let x = 5;
+x; // 5
+```
+
+### functions
+
+```Monkey
+let indentity = fn(x) { x; };
+indentity(5); // 5
+```
+
+### closures
+
+```Monkey
+let new_adder = fn(x) { fn(y) { x + y; }; };
+let add_two = new_adder(2);
+add_two(5); // 7
+```
+
 ### Not supported yet
 
-* variables
 * error handling
