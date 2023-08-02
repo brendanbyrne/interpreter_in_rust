@@ -1,6 +1,8 @@
 //! Objects to be used in the object system
 
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 use crate::evaluator::environment::Env;
 use crate::parser::ast;
@@ -15,7 +17,7 @@ pub enum Object {
     // Values in the system
     Int(i128),
     Bool(bool),
-    Function(Vec<String>, ast::Statement, Env),
+    Function(Vec<String>, ast::Statement, Rc<RefCell<Env>>),
 }
 
 // QUESTION: Does this actually do what I think it does?
