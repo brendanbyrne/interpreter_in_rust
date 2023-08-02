@@ -9,6 +9,9 @@ pub use object::{Object, FALSE, NOOP, TRUE};
 
 use crate::evaluator::error::{Error, Result};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Env {
     store: HashMap<String, Object>,
@@ -36,22 +39,5 @@ impl Env {
     pub fn set(&mut self, id: String, value: Object) {
         // Return what was set? -> value.clone()
         self.store.insert(id, value);
-    }
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn env() {
-        let root = Rc::new(RefCell::new(Env::default()));
-        let child = Env::new_with_parent(Rc::clone(&root));
-
-        let id = String::from("x");
-        let value = Object::Int(1);
-
-        root.borrow_mut().set(id.clone(), value.clone());
-
-        assert_eq!(child.get(&id).unwrap(), value);
     }
 }
