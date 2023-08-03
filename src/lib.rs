@@ -13,7 +13,7 @@ use parser::{parse_program, Program};
 mod evaluator;
 use evaluator::Evaluator;
 
-pub const MONKEY_FACE: &'static str = r#"
+pub const MONKEY_FACE: &str = r#"
             __,__
    .--.  .-"     "-.  .--.
   / .. \/  .-. .-.  \/ .. \
@@ -27,7 +27,7 @@ pub const MONKEY_FACE: &'static str = r#"
            '-----'
 "#;
 
-const PROMPT: &'static str = ">> ";
+const PROMPT: &str = ">> ";
 
 /// Starts the interpreter's REPL cycle
 ///

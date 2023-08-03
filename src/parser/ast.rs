@@ -85,13 +85,13 @@ impl fmt::Display for Expression {
                         .map(|e| (*e).to_string())
                         .collect::<Vec<String>>()
                         .join(", "),
-                    body.to_string()
+                    body
                 )
             }
             Call(name, args) => {
                 format!(
                     "{}({})",
-                    (*name).to_string(),
+                    *name,
                     args.iter()
                         .map(|e| (*e).to_string())
                         .collect::<Vec<String>>()

@@ -14,11 +14,11 @@ pub struct Lexer {
 const NULL: char = '\u{0}';
 
 fn is_letter(ch: char) -> bool {
-    'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+    ('a'..='z').contains(&ch) || ('A'..='Z').contains(&ch) || ch == '_'
 }
 
 fn is_digit(ch: char) -> bool {
-    '0' <= ch && ch <= '9'
+    ('0'..='9').contains(&ch)
 }
 
 fn is_whitespace(ch: char) -> bool {
@@ -69,7 +69,7 @@ impl Lexer {
         if self.read_position >= self.input.len() {
             return NULL;
         }
-        return self.input[self.read_position];
+        self.input[self.read_position]
     }
 
     fn read_char(&mut self) {

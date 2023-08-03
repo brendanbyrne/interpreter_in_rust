@@ -167,22 +167,22 @@ impl Parser {
             }
         }
 
-        return Ok(expression);
+        Ok(expression)
     }
 
     fn parse_prefix(&mut self) -> Result<ast::Expression> {
         match &self.cur_token {
-            Token::Ident(name) => return Ok(ast::Expression::Identifier(name.clone())),
-            Token::Int(value) => return self.parse_prefix_int(value.to_string()),
-            Token::Bang => return self.parse_prefix_expression(ast::PrefixOperator::Not),
-            Token::Minus => return self.parse_prefix_expression(ast::PrefixOperator::Negate),
-            Token::True => return Ok(ast::Expression::Bool(true)),
-            Token::False => return Ok(ast::Expression::Bool(false)),
-            Token::LParen => return self.parse_group(),
-            Token::If => return self.parse_if(),
-            Token::Function => return self.parse_function_literal(),
-            _ => return Err(Error::NoPrefixDefined(self.cur_token.clone())),
-        };
+            Token::Ident(name) => Ok(ast::Expression::Identifier(name.clone())),
+            Token::Int(value) => self.parse_prefix_int(value.to_string()),
+            Token::Bang => self.parse_prefix_expression(ast::PrefixOperator::Not),
+            Token::Minus => self.parse_prefix_expression(ast::PrefixOperator::Negate),
+            Token::True => Ok(ast::Expression::Bool(true)),
+            Token::False => Ok(ast::Expression::Bool(false)),
+            Token::LParen => self.parse_group(),
+            Token::If => self.parse_if(),
+            Token::Function => self.parse_function_literal(),
+            _ => Err(Error::NoPrefixDefined(self.cur_token.clone())),
+        }
     }
 
     fn parse_prefix_int(&mut self, input: String) -> Result<ast::Expression> {
@@ -250,7 +250,7 @@ impl Parser {
         self.next_token();
         let expression = self.parse_expression(Ordering::Lowest)?;
         self.expect_peek(&Token::RParen)?;
-        return Ok(expression);
+        Ok(expression)
     }
 
     fn parse_if(&mut self) -> Result<ast::Expression> {
@@ -276,10 +276,10 @@ impl Parser {
             ));
         }
 
-        return Ok(ast::Expression::If(
+        Ok(ast::Expression::If(
             Box::new(condition),
             Box::new(consequence),
-        ));
+        ))
     }
 
     fn parse_block_statement(&mut self) -> Result<ast::Statement> {
@@ -349,21 +349,21 @@ impl Parser {
 
     fn get_infix_operator(token: &Token) -> Option<ast::InfixOperator> {
         match token {
-            Token::Equal => return Some(ast::InfixOperator::Equal),
-            Token::NotEqual => return Some(ast::InfixOperator::NotEqual),
-            Token::LessThan => return Some(ast::InfixOperator::LessThan),
-            Token::GreaterThan => return Some(ast::InfixOperator::GreaterThan),
-            Token::Plus => return Some(ast::InfixOperator::Plus),
-            Token::Minus => return Some(ast::InfixOperator::Minus),
-            Token::Asterisk => return Some(ast::InfixOperator::Multiply),
-            Token::Slash => return Some(ast::InfixOperator::Divide),
-            Token::LParen => return Some(ast::InfixOperator::Call),
-            _ => return None,
-        };
+            Token::Equal => Some(ast::InfixOperator::Equal),
+            Token::NotEqual => Some(ast::InfixOperator::NotEqual),
+            Token::LessThan => Some(ast::InfixOperator::LessThan),
+            Token::GreaterThan => Some(ast::InfixOperator::GreaterThan),
+            Token::Plus => Some(ast::InfixOperator::Plus),
+            Token::Minus => Some(ast::InfixOperator::Minus),
+            Token::Asterisk => Some(ast::InfixOperator::Multiply),
+            Token::Slash => Some(ast::InfixOperator::Divide),
+            Token::LParen => Some(ast::InfixOperator::Call),
+            _ => None,
+        }
     }
 
     fn precedence(token: &Token) -> Ordering {
-        let p = match token {
+        match token {
             Token::Equal => Ordering::Equals,
             Token::NotEqual => Ordering::Equals,
             Token::LessThan => Ordering::LessGreater,
@@ -374,7 +374,6 @@ impl Parser {
             Token::Slash => Ordering::MultiplyDivide,
             Token::LParen => Ordering::Call,
             _ => Ordering::Lowest,
-        };
-        p
+        }
     }
 }

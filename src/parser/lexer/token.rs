@@ -1,7 +1,7 @@
 ///! The kinds of tokens that are allowed by Monkey's lexer
 
 /// Valid tokens in Monkey
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token {
     Illegal(char),
     EOF,
@@ -32,8 +32,8 @@ pub enum Token {
     NotEqual,
 }
 
-fn keyword_check(literal: &String) -> Option<Token> {
-    match literal.as_str() {
+fn keyword_check(literal: &str) -> Option<Token> {
+    match literal {
         "let" => Some(Token::Let),
         "fn" => Some(Token::Function),
         "true" => Some(Token::True),

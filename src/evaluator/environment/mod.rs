@@ -28,10 +28,10 @@ impl Env {
 
     pub fn get(&self, id: &String) -> Result<Object> {
         match self.store.get(id) {
-            Some(value) => return Ok(value.clone()),
+            Some(value) => Ok(value.clone()),
             None => match &self.maybe_parent {
-                Some(parent) => return parent.borrow().get(id),
-                None => return Err(Error::IdNotFound(id.clone())),
+                Some(parent) => parent.borrow().get(id),
+                None => Err(Error::IdNotFound(id.clone())),
             },
         }
     }

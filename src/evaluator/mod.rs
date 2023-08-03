@@ -78,7 +78,7 @@ impl Evaluator {
             }
             ast::Expression::If(condition, if_true) => {
                 if environment::object::is_truthy(&self.expression(*condition)?) {
-                    return Ok(self.statement(*if_true)?);
+                    return self.statement(*if_true);
                 }
                 Ok(NOOP)
             }

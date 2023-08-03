@@ -6,7 +6,7 @@ use crate::evaluator::environment::Object;
 use crate::parser::ast;
 
 /// Types of error the evaluator can produce
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     UnexpectedReturn(Object),
     UnsupportedNegate(Object),
