@@ -100,26 +100,31 @@ impl Evaluator {
                 Rc::clone(&self.env),
             )),
             ast::Expression::Call(id, arg_exprs) => {
-                let expr = self.expression(*id)?;
-
-                if let Object::Function(arg_names, body, env) = expr {
-                    if arg_names.len() != arg_exprs.len() {
-                        return Err(Error::WrongNumberArgs(arg_names.len(), arg_exprs.len()));
-                    }
-
-                    let func_env = Rc::new(RefCell::new(Env::new_with_parent(Rc::clone(&env))));
-                    for (n, e) in arg_names.into_iter().zip(arg_exprs) {
-                        let expr = self.expression(*e)?;
-                        func_env.borrow_mut().set(n, expr);
-                    }
-
-                    let mut inner_eval = Evaluator { env: func_env };
-
-                    return inner_eval.statement(body);
-                }
-                panic!("Expected Object::Function, got: {}", expr);
+                let func = self.expression(*id)?;
+                self.call_function(func, arg_exprs)
             }
         }
+    }
+
+    fn call_function(
+        &mut self,
+        func: Object,
+        arg_exprs: Vec<Box<ast::Expression>>,
+    ) -> Result<Object> {
+        if let Object::Function(arg_names, body, env) = func {
+            if arg_names.len() != arg_exprs.len() {
+                return Err(Error::WrongNumberArgs(arg_names.len(), arg_exprs.len()));
+            }
+
+            let func_env = Rc::new(RefCell::new(Env::new_with_parent(Rc::clone(&env))));
+            for (n, e) in arg_names.into_iter().zip(arg_exprs) {
+                let expr = self.expression(*e)?;
+                func_env.borrow_mut().set(n, expr);
+            }
+
+            return Evaluator { env: func_env }.statement(body);
+        }
+        panic!("Expected Object::Function, got: {}", func);
     }
 
     fn prefix(op: ast::PrefixOperator, rhs: Object) -> Result<Object> {
