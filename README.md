@@ -1,14 +1,17 @@
-# Writing an interpreter in rust
+# monkey-interpreter
 
-## TODO
-- [ ] Convert lexer and parser to work on streams/iters
-- [ ] Make `parse_program` work with str& and String
+This repo is documents my experiences working through the "Writing an Interpreter in Go" book...in rust.
 
-## REPL Loop
-I finally have the REPL hooked into the loop. It supports the following
-operations.
+## Current goal
+Make `parse_program` work with str& and String.
 
-### Math operations with literals
+
+## Features
+- Math and logic operations
+```rust
+>> 42 + 5
+47
+```
 
 ```Monkey
 1 + 1
@@ -19,7 +22,7 @@ operations.
 
 ### Logic operations with literals
 
-```Monkey
+```rust
 true != false;
 true == true;
 ```
@@ -28,7 +31,7 @@ true == true;
 
 Non-zero integers are considered true.
 
-```Monkey
+```rust
 if ( expression ) {
   expression
 } else {
@@ -38,11 +41,11 @@ if ( expression ) {
 
 ### return statements
 
-```Monkey
+```rust
 return expression;
 ```
 
-```Monkey
+```rust
 if (true) {
   return 1;
 }
@@ -52,21 +55,21 @@ not_reached;
 
 ### variables
 
-```Monkey
+```rust
 let x = 5;
 x; // 5
 ```
 
 ### functions
 
-```Monkey
+```rust
 let indentity = fn(x) { x; };
 indentity(5); // 5
 ```
 
 ### closures
 
-```Monkey
+```rust
 let new_adder = fn(x) { fn(y) { x + y; }; };
 let add_two = new_adder(2);
 add_two(5); // 7

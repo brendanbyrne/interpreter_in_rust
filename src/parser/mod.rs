@@ -47,8 +47,8 @@ impl Parser {
     fn new(lexer: Lexer) -> Self {
         let mut parser = Parser {
             lexer,
-            cur_token: Token::EOF,
-            peek_token: Token::EOF,
+            cur_token: Token::Eof,
+            peek_token: Token::Eof,
             errors: Vec::new(),
         };
         parser.next_token();
@@ -62,7 +62,7 @@ impl Parser {
     fn parse_program(&mut self) -> Result<Program> {
         let mut program = Program::new();
 
-        while self.cur_token != Token::EOF {
+        while self.cur_token != Token::Eof {
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(Box::new(statement)),
                 Err(e) => self.errors.push(e),
@@ -288,7 +288,7 @@ impl Parser {
 
         let mut statements = Vec::new();
 
-        while self.cur_token != Token::RBrace && self.cur_token != Token::EOF {
+        while self.cur_token != Token::RBrace && self.cur_token != Token::Eof {
             match self.parse_statement() {
                 Ok(statement) => statements.push(Box::new(statement)),
                 Err(e) => self.errors.push(e),

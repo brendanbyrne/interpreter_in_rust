@@ -141,7 +141,7 @@ impl Lexer {
                 tok = Token::GreaterThan;
             }
             NULL => {
-                tok = Token::EOF;
+                tok = Token::Eof;
             }
             _ => {
                 if is_letter(self.ch) {

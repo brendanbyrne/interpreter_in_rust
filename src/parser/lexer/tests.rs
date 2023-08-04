@@ -99,7 +99,7 @@ if (5 < 10) {
         NotEqual,
         Int("9".to_string()),
         Semicolon,
-        EOF,
+        Eof,
     ];
 
     let mut lexer = Lexer::new(input.chars().collect());
