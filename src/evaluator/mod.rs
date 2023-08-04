@@ -166,7 +166,7 @@ impl Evaluator {
         use ast::InfixOperator::*;
         match op {
             Equal => Ok(Object::Bool(lhs == rhs)),
-            NotEqual => Ok(Object::Bool(lhs == rhs)),
+            NotEqual => Ok(Object::Bool(lhs != rhs)),
             Call => panic!("This path should never be executed."),
             _ => Ok(Evaluator::infix_math(op, lhs, rhs)?),
         }
