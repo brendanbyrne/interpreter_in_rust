@@ -1,18 +1,17 @@
 //! Powers the eval portion of the REPL cycle
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 mod environment;
-use environment::{Env, Object, FALSE, NOOP, TRUE};
-
 mod error;
-use error::{Error, Result};
-
-use crate::parser::{ast, Program};
 
 #[cfg(test)]
 mod tests;
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::parser::{ast, Program};
+use environment::{Env, Object, FALSE, NOOP, TRUE};
+use error::{Error, Result};
 
 /// Contains the state of the execuated program
 pub struct Evaluator {

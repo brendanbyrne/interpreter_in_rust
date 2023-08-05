@@ -1,13 +1,13 @@
 //! Manages the values of different identifiers
 
+pub mod object;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub mod object;
-pub use object::{Object, FALSE, NOOP, TRUE};
-
 use crate::evaluator::error::{Error, Result};
+pub use object::{Object, FALSE, NOOP, TRUE};
 
 #[cfg(test)]
 mod tests;

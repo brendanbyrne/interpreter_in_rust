@@ -1,4 +1,6 @@
+///! The lexer processes a stream of characters and turns them into tokens.
 mod token;
+
 pub use token::Token;
 
 #[cfg(test)]

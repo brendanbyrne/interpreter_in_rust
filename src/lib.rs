@@ -4,14 +4,14 @@
 //! language running in an interpreted environment.  Call `start()` to begin the
 //! REPL sequence.
 
+mod evaluator;
+mod parser;
+
 use std::error::Error;
 use std::io::{self, Write};
 
-mod parser;
-use parser::{parse_program, Program};
-
-mod evaluator;
 use evaluator::Evaluator;
+use parser::{parse_program, Program};
 
 pub const MONKEY_FACE: &str = r#"
             __,__

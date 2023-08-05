@@ -1,13 +1,12 @@
 //! Implementation of the Monkey language parser
 
-mod error;
-use error::{Error, Result};
-
-mod lexer;
-use lexer::{Lexer, Token};
-
 pub mod ast;
+mod error;
+mod lexer;
+
 pub use ast::Program;
+use error::{Error, Result};
+use lexer::{Lexer, Token};
 
 #[cfg(test)]
 mod tests;
