@@ -2,8 +2,9 @@
 
 This repo documents my experiences working through the "Writing an Interpreter in Go" book...in rust.
 
-## Current goal
-Make `parse_program` work with str& and String.
+## Current goals
+1. Add support for `std::fmt::Display` trait to environment.
+2. Make `parse_program` work with `str&` and `String`.
 
 ## Supported Language Features
 - Math and logic operations
@@ -13,6 +14,21 @@ Make `parse_program` work with str& and String.
 - return statements
 - closures
 
+## How to use
+1. Clone repo.
+```
+git clone https://github.com/brendanbyrne/monkey_interpreter.git
+```
+2. Run crate.
+```
+cargo run
+```
+3. Input a line to be interpreted, then press enter.
+```
+>> let example = 1337;
+1337
+```
+
 ## Not supported yet
 - Error handling
 
@@ -20,13 +36,23 @@ Make `parse_program` work with str& and String.
 ```rust
 let foo = 42;
 let bar = 5;
+```
 
-let test_func = fn(x,y)
+**Note: The interpreter doesn't support multiline inputs.  But the single line can be as long as you want.**
+```rust
+let func = fn(x,y)
 {
   if (foo + bar > 47) {
     return true;
   }
   else{
-    return test_func(x, y + 1);
+    return func(x, y + 1);
   }
+}
+```
+
+The above could be written as the following:
+
+```rust
+let func = fn(x,y) { if (foo + bar > 47) { return true; } else { return func(foo, bar+1); }
 ```
