@@ -44,18 +44,24 @@ impl Env {
         // Return what was set? -> value.clone()
         self.store.insert(id, value);
     }
+}
 
-    fn iter(&self) -> EnvIter {
-        EnvIter::new(&self)
+struct Tree {
+    root: Rc<RefCell<Env>>,
+}
+impl Tree{
+    fn iter(&self) -> TreeIter {
+	TreeIter::new(Rc::clone(root)
     }
 }
 
+
 #[derive(Default)]
-struct EnvIter<'a> {
-    stack: Vec<&'a Env>,
+struct TreeIter{
+    stack: Vec<&Env>,
 }
 
-impl<'a> EnvIter<'_> {
+impl EnvIter<'_> {
     fn new(root: &'a Env) -> Self {
         return EnvIter { stack: vec![root] };
     }
