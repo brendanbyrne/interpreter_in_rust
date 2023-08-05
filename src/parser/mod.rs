@@ -64,7 +64,7 @@ impl Parser {
 
         while self.cur_token != Token::Eof {
             match self.parse_statement() {
-                Ok(statement) => program.statements.push(Box::new(statement)),
+                Ok(statement) => program.statements.push(statement),
                 Err(e) => self.errors.push(e),
             };
             self.next_token();
@@ -220,7 +220,7 @@ impl Parser {
         }
     }
 
-    fn parse_call_args(&mut self) -> Result<Vec<Box<ast::Expression>>> {
+    fn parse_call_args(&mut self) -> Result<Vec<ast::Expression>> {
         assert_eq!(self.cur_token, Token::LParen);
         self.next_token();
 
@@ -230,14 +230,14 @@ impl Parser {
 
         let mut args = {
             let arg = self.parse_expression(Ordering::Lowest)?;
-            vec![Box::new(arg)]
+            vec![arg]
         };
 
         while self.peek_token == Token::Comma {
             self.next_token();
             self.next_token();
             let arg = self.parse_expression(Ordering::Lowest)?;
-            args.push(Box::new(arg));
+            args.push(arg);
         }
 
         self.expect_peek(&Token::RParen)?;
@@ -255,7 +255,7 @@ impl Parser {
 
     fn parse_if(&mut self) -> Result<ast::Expression> {
         self.expect_peek(&Token::LParen)?;
-        self.next_token(); // drop LParen, inside of if ( <HERE> )
+        self.next_token(); // drop LParen, inside of "if ( <HERE> )"
 
         let condition = self.parse_expression(Ordering::Lowest)?;
 
@@ -290,7 +290,7 @@ impl Parser {
 
         while self.cur_token != Token::RBrace && self.cur_token != Token::Eof {
             match self.parse_statement() {
-                Ok(statement) => statements.push(Box::new(statement)),
+                Ok(statement) => statements.push(statement),
                 Err(e) => self.errors.push(e),
             };
             self.next_token();
@@ -313,7 +313,7 @@ impl Parser {
         Ok(ast::Expression::Function(params, Box::new(body)))
     }
 
-    fn parse_func_params(&mut self) -> Result<Vec<Box<ast::Expression>>> {
+    fn parse_func_params(&mut self) -> Result<Vec<ast::Expression>> {
         assert_eq!(self.cur_token, Token::LParen);
         self.next_token();
 
@@ -323,14 +323,14 @@ impl Parser {
 
         let mut params = {
             let name = self.get_ident_name()?;
-            vec![Box::new(ast::Expression::Identifier(name))]
+            vec![ast::Expression::Identifier(name)]
         };
 
         while self.peek_token == Token::Comma {
             self.next_token();
             self.next_token();
             let name = self.get_ident_name()?;
-            params.push(Box::new(ast::Expression::Identifier(name)));
+            params.push(ast::Expression::Identifier(name));
         }
 
         self.expect_peek(&Token::RParen)?;

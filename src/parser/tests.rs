@@ -30,7 +30,7 @@ fn let_statements() {
         let mut program = parse_program(test_case.input).unwrap();
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::Statement::Let(name, expression) = *program.statements.pop().unwrap() {
+        if let ast::Statement::Let(name, expression) = program.statements.pop().unwrap() {
             assert_eq!(name, test_case.expected_name);
             assert_eq!(expression, test_case.expected_expression);
         } else {
@@ -65,7 +65,7 @@ fn return_statements() {
         let mut program = parse_program(test_case.input).unwrap();
         assert_eq!(program.statements.len(), 1);
 
-        if let ast::Statement::Return(expression) = *program.statements.pop().unwrap() {
+        if let ast::Statement::Return(expression) = program.statements.pop().unwrap() {
             assert_eq!(expression, test_case.expected_expression);
         } else {
             panic!("Expected type ast::Statement::Return");
@@ -380,7 +380,7 @@ fn if_expression() {
         Box::new(Identifier("y".to_owned())),
     );
 
-    let expected_if_true = Block(vec![Box::new(Expression(Identifier("x".to_owned())))]);
+    let expected_if_true = Block(vec![Expression(Identifier("x".to_owned()))]);
 
     assert_eq!(program.statements.len(), 1);
 
@@ -406,9 +406,9 @@ fn if_else_expression() {
         Box::new(Identifier("y".to_owned())),
     );
 
-    let expected_if_true = Block(vec![Box::new(Expression(Identifier("x".to_owned())))]);
+    let expected_if_true = Block(vec![Expression(Identifier("x".to_owned()))]);
 
-    let expected_if_false = Block(vec![Box::new(Expression(Identifier("y".to_owned())))]);
+    let expected_if_false = Block(vec![Expression(Identifier("y".to_owned()))]);
 
     assert_eq!(program.statements.len(), 1);
 
@@ -432,12 +432,8 @@ fn function_literal_expression() {
 
     let x = Identifier("x".to_owned());
     let y = Identifier("y".to_owned());
-    let expected_params = vec![Box::new(x.clone()), Box::new(y.clone())];
-    let expected_body = Block(vec![Box::new(Expression(Infix(
-        Plus,
-        Box::new(x),
-        Box::new(y),
-    )))]);
+    let expected_params = vec![x.clone(), y.clone()];
+    let expected_body = Block(vec![Expression(Infix(Plus, Box::new(x), Box::new(y)))]);
 
     if let ast::Expression::Function(params, body) = get_expression(&mut program) {
         assert_eq!(params, expected_params);
@@ -451,11 +447,11 @@ fn function_literal_expression() {
 fn function_parameters() {
     struct TestCase<'a> {
         input: &'a str,
-        expected_params: Vec<Box<ast::Expression>>,
+        expected_params: Vec<ast::Expression>,
     }
 
-    fn make_id(id: &str) -> Box<ast::Expression> {
-        return Box::new(ast::Expression::Identifier(id.to_owned()));
+    fn make_id(id: &str) -> ast::Expression {
+        return ast::Expression::Identifier(id.to_owned());
     }
 
     let test_cases = vec![
@@ -494,9 +490,9 @@ fn call_expression() {
 
     let expected_name = Identifier("add".to_owned());
     let expected_inputs = vec![
-        Box::new(Int(1)),
-        Box::new(Infix(Multiply, Box::new(Int(2)), Box::new(Int(3)))),
-        Box::new(Infix(Plus, Box::new(Int(4)), Box::new(Int(5)))),
+        Int(1),
+        Infix(Multiply, Box::new(Int(2)), Box::new(Int(3))),
+        Infix(Plus, Box::new(Int(4)), Box::new(Int(5))),
     ];
 
     if let ast::Expression::Call(name, inputs) = get_expression(&mut program) {
@@ -508,7 +504,7 @@ fn call_expression() {
 }
 
 fn get_expression(program: &mut Program) -> ast::Expression {
-    if let ast::Statement::Expression(expression) = *program.statements.pop().unwrap() {
+    if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
         return expression;
     } else {
         panic!("Expected ast::Statement::Expression");

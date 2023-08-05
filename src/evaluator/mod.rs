@@ -33,10 +33,10 @@ impl Evaluator {
     }
 
     /// Evaluate the statements for the given environment
-    fn statements(&mut self, statements: Vec<Box<ast::Statement>>) -> Result<Object> {
+    fn statements(&mut self, statements: Vec<ast::Statement>) -> Result<Object> {
         let mut obj = NOOP;
         for statement in statements {
-            obj = self.statement(*statement)?;
+            obj = self.statement(statement)?;
             if let Object::Return(return_obj) = obj {
                 return Ok(*return_obj);
             }
@@ -106,11 +106,7 @@ impl Evaluator {
         }
     }
 
-    fn call_function(
-        &mut self,
-        func: Object,
-        arg_exprs: Vec<Box<ast::Expression>>,
-    ) -> Result<Object> {
+    fn call_function(&mut self, func: Object, arg_exprs: Vec<ast::Expression>) -> Result<Object> {
         if let Object::Function(arg_names, body, env) = func {
             if arg_names.len() != arg_exprs.len() {
                 return Err(Error::WrongNumberArgs(arg_names.len(), arg_exprs.len()));
@@ -118,7 +114,7 @@ impl Evaluator {
 
             let func_env = Rc::new(RefCell::new(Env::new_with_parent(Rc::clone(&env))));
             for (n, e) in arg_names.into_iter().zip(arg_exprs) {
-                let expr = self.expression(*e)?;
+                let expr = self.expression(e)?;
                 func_env.borrow_mut().set(n, expr);
             }
 

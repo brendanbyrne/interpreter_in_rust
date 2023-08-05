@@ -165,12 +165,10 @@ fn eval() {
             input: "fn(x) { x + 2; };",
             expected_obj: Object::Function(
                 vec!["x".to_owned()],
-                ast::Statement::Block(vec![Box::new(ast::Statement::Expression(
-                    ast::Expression::Infix(
-                        ast::InfixOperator::Plus,
-                        Box::new(ast::Expression::Identifier("x".to_owned())),
-                        Box::new(ast::Expression::Int(2)),
-                    ),
+                ast::Statement::Block(vec![ast::Statement::Expression(ast::Expression::Infix(
+                    ast::InfixOperator::Plus,
+                    Box::new(ast::Expression::Identifier("x".to_owned())),
+                    Box::new(ast::Expression::Int(2)),
                 ))]),
                 Rc::new(RefCell::new(Env::default())),
             ),

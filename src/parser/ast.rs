@@ -1,6 +1,114 @@
-//! The abstract syntax tree Monkey
+//! The abstract syntax tree for Monkey
 
 use std::fmt;
+
+pub struct Program {
+    pub statements: Vec<Statement>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Program {
+            statements: Vec::new(),
+        }
+    }
+}
+
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.statements
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Statement {
+    Let(String, Expression),
+    Return(Expression),
+    Expression(Expression),
+    Block(Vec<Statement>),
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Statement::*;
+        let statement = match self {
+            Let(name, expression) => format!("let {} = {};", name, expression),
+            Return(expression) => format!("return {};", expression),
+            Expression(expression) => format!("{};", expression),
+            Block(statements) => {
+                format!(
+                    "{{\n{}\n}}",
+                    statements
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n\t")
+                )
+            }
+        };
+        write!(f, "{}", statement)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Expression {
+    Identifier(String),
+    Int(i128),
+    Prefix(PrefixOperator, Box<Expression>),
+    Infix(InfixOperator, Box<Expression>, Box<Expression>),
+    Bool(bool),
+    If(Box<Expression>, Box<Statement>),
+    IfElse(Box<Expression>, Box<Statement>, Box<Statement>),
+    Function(Vec<Expression>, Box<Statement>),
+    Call(Box<Expression>, Vec<Expression>),
+}
+
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Expression::*;
+        let expression = match self {
+            Identifier(name) => name.clone(),
+            Int(value) => format!("{}", value),
+            Prefix(op, expression) => format!("({}{})", op, *expression),
+            Infix(op, lhs, rhs) => format!("({} {} {})", *lhs, op, *rhs),
+            Bool(value) => format!("{}", value),
+            If(cond, if_true) => format!("if ({}) {}", *cond, *if_true),
+            IfElse(cond, if_true, if_false) => {
+                format!("if ({}) {} else {}", *cond, *if_true, *if_false)
+            }
+            Function(params, body) => {
+                format!(
+                    "fn({}) {}",
+                    params
+                        .iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", "),
+                    body
+                )
+            }
+            Call(name, args) => {
+                format!(
+                    "{}({})",
+                    *name,
+                    args.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )
+            }
+        };
+        write!(f, "{}", expression)
+    }
+}
 
 /// Operators that support the `foo operator bar` format
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,115 +159,6 @@ impl fmt::Display for PrefixOperator {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Expression {
-    Identifier(String),
-    Int(i128),
-    Prefix(PrefixOperator, Box<Expression>),
-    Infix(InfixOperator, Box<Expression>, Box<Expression>),
-    Bool(bool),
-    If(Box<Expression>, Box<Statement>),
-    IfElse(Box<Expression>, Box<Statement>, Box<Statement>),
-    Function(Vec<Box<Expression>>, Box<Statement>),
-    Call(Box<Expression>, Vec<Box<Expression>>),
-}
-
-impl fmt::Display for Expression {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Expression::*;
-        let expression = match self {
-            Identifier(name) => name.clone(),
-            Int(value) => format!("{}", value),
-            Prefix(op, expression) => format!("({}{})", op, *expression),
-            Infix(op, lhs, rhs) => format!("({} {} {})", *lhs, op, *rhs),
-            Bool(value) => format!("{}", value),
-            If(cond, if_true) => format!("if ({}) {}", *cond, *if_true),
-            IfElse(cond, if_true, if_false) => {
-                format!("if ({}) {} else {}", *cond, *if_true, *if_false)
-            }
-            Function(params, body) => {
-                format!(
-                    "fn({}) {}",
-                    params
-                        .iter()
-                        .map(|e| (*e).to_string())
-                        .collect::<Vec<String>>()
-                        .join(", "),
-                    body
-                )
-            }
-            Call(name, args) => {
-                format!(
-                    "{}({})",
-                    *name,
-                    args.iter()
-                        .map(|e| (*e).to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                )
-            }
-        };
-        write!(f, "{}", expression)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Statement {
-    Let(String, Expression),
-    Return(Expression),
-    Expression(Expression),
-    Block(Vec<Box<Statement>>),
-}
-
-impl fmt::Display for Statement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Statement::*;
-        let statement = match self {
-            Let(name, expression) => format!("let {} = {};", name, expression),
-            Return(expression) => format!("return {};", expression),
-            Expression(expression) => format!("{};", expression),
-            Block(statements) => {
-                format!(
-                    "{{\n{}\n}}",
-                    statements
-                        .iter()
-                        .map(|s| (*s).to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n\t")
-                )
-            }
-        };
-        write!(f, "{}", statement)
-    }
-}
-
-pub struct Program {
-    // Vec<Box<>> so field can call the same functions as a Statement::Block
-    pub statements: Vec<Box<Statement>>,
-}
-
-impl Program {
-    pub fn new() -> Self {
-        Program {
-            statements: Vec::new(),
-        }
-    }
-}
-
-impl fmt::Display for Program {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.statements
-                .iter()
-                .map(|s| (*s).to_string())
-                .collect::<Vec<String>>()
-                .join("\n")
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,10 +166,9 @@ mod tests {
     #[test]
     fn to_string() {
         let mut program = Program::new();
-        program.statements.push(Box::new(Statement::Let(
-            "foo".to_owned(),
-            Expression::Int(5),
-        )));
+        program
+            .statements
+            .push(Statement::Let("foo".to_owned(), Expression::Int(5)));
 
         assert_eq!("let foo = 5;".to_owned(), program.to_string());
     }
