@@ -4,6 +4,8 @@ pub mod object;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt;
+use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::evaluator::error::{Error, Result};
@@ -12,9 +14,11 @@ pub use object::{Object, FALSE, NOOP, TRUE};
 #[cfg(test)]
 mod tests;
 
+type Store = HashMap<String, Object>;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Env {
-    store: HashMap<String, Object>,
+    store: Store,
     maybe_parent: Option<Rc<RefCell<Env>>>,
 }
 
@@ -40,4 +44,55 @@ impl Env {
         // Return what was set? -> value.clone()
         self.store.insert(id, value);
     }
+
+    fn iter(&self) -> EnvIter {
+        EnvIter::new(&self)
+    }
 }
+
+#[derive(Default)]
+struct EnvIter<'a> {
+    stack: Vec<&'a Env>,
+}
+
+impl<'a> EnvIter<'_> {
+    fn new(root: &'a Env) -> Self {
+        return EnvIter { stack: vec![root] };
+    }
+}
+
+// impl fmt::Display for Env {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         let scope = scope_to_string(&self.store);
+
+//         // scope.push(&self.maybe_parent;
+
+//         // loop {
+
+//         // }
+//         write!(f, "{}", scope)
+//     }
+// }
+
+// fn env_to_string(store: &Store) -> String {
+//     format!(
+//         "{{{}}}",
+//         store
+//             .iter()
+//             .map(|(k, v)| format!("{}: {}", k, v))
+//             .collect::<Vec<String>>()
+//             .join(", ")
+//     )
+// }
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+
+//     #[test]
+//     fn display() {
+//         let mut env = Env::default();
+//         env.set("hello".to_owned(), Object::Int(1));
+//         assert_eq!(format!("{}", env), "{hello: 1}");
+//     }
+// }
