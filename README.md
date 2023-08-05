@@ -1,6 +1,6 @@
 # monkey-interpreter
 
-This repo is documents my experiences working through the "Writing an Interpreter in Go" book...in rust.
+This repo documents my experiences working through the "Writing an Interpreter in Go" book...in rust.
 
 ## Current goal
 Make `parse_program` work with str& and String.
