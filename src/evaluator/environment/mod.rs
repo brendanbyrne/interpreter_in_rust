@@ -44,51 +44,73 @@ impl Env {
         // Return what was set? -> value.clone()
         self.store.insert(id, value);
     }
-}
 
-struct Tree {
-    root: Rc<RefCell<Env>>,
-}
-impl Tree{
-    fn iter(&self) -> TreeIter {
-	TreeIter::new(Rc::clone(root)
+    // pub fn iter(&self) -> EnvIter {
+    //     EnvIter::new(self)
+    // }
+
+    fn traverse(&self, f: impl FnMut(usize, &Store)) {
+        self.traverse_with_depth(0, *&f);
+    }
+
+    fn traverse_with_depth(&self, depth: usize, f: impl FnMut(usize, &Store)) {
+        f(depth, &self.store);
+
+        if let Some(parent) = self.maybe_parent {
+            parent.borrow().traverse_with_depth(depth + 1, *&f);
+        }
     }
 }
 
-
-#[derive(Default)]
-struct TreeIter{
-    stack: Vec<&Env>,
+fn store_to_string(store: &Store) -> String {
+    format!(
+        "{{{}}}",
+        store
+            .iter()
+            .map(|(k, v)| format!("{}: {}", k, v))
+            .collect::<Vec<String>>()
+            .join(", ")
+    )
 }
 
-impl EnvIter<'_> {
-    fn new(root: &'a Env) -> Self {
-        return EnvIter { stack: vec![root] };
-    }
-}
+//////////////////
+// Experimenting with iterators
+//////////////////
+// struct EnvIter<'a> {
+//     env: &'a Env,
+// }
 
-// impl fmt::Display for Env {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         let scope = scope_to_string(&self.store);
-
-//         // scope.push(&self.maybe_parent;
-
-//         // loop {
-
-//         // }
-//         write!(f, "{}", scope)
+// impl<'a> EnvIter<'a> {
+//     fn new(env: &'a Env) -> Self {
+//         EnvIter { env }
 //     }
 // }
 
-// fn env_to_string(store: &Store) -> String {
-//     format!(
-//         "{{{}}}",
-//         store
+// impl<'a> Iterator for EnvIter<'a> {
+//     type Item = &'a Store;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let store = &self.env.store;
+
+//         if let Some(parent) = &self.env.maybe_parent {
+//             self.env = &parent.borrow();
+//         }
+
+//         Some(store)
+//     }
+// }
+
+// impl fmt::Display for Env {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         let full_scope = self
 //             .iter()
-//             .map(|(k, v)| format!("{}: {}", k, v))
+//             .enumerate()
+//             .map(|(i, store)| format!("{}{{{}}}", "  ".repeat(i), store_to_string(store)))
 //             .collect::<Vec<String>>()
-//             .join(", ")
-//     )
+//             .join("\n");
+
+//         write!(f, "{}", full_scope)
+//     }
 // }
 
 // #[cfg(test)]
