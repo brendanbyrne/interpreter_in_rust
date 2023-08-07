@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::parser::{ast, Program};
-use environment::{Env, Object, FALSE, NOOP, TRUE};
+use environment::{Env, Object, Truth, FALSE, NOOP, TRUE};
 use error::{Error, Result};
 
 /// Contains the state of the execuated program
@@ -66,6 +66,7 @@ impl Evaluator {
                     Ok(FALSE)
                 }
             }
+            ast::Expression::String_(value) => Ok(Object::String_(value)),
             ast::Expression::Prefix(op, rhs) => {
                 let obj = self.expression(*rhs)?;
                 Ok(Evaluator::prefix(op, obj)?)
@@ -76,14 +77,14 @@ impl Evaluator {
                 Ok(Evaluator::infix(op, lhs_obj, rhs_obj)?)
             }
             ast::Expression::If(condition, if_true) => {
-                if environment::object::is_truthy(&self.expression(*condition)?) {
+                if (self.expression(*condition)?).truth() {
                     return self.statement(*if_true);
                 }
                 Ok(NOOP)
             }
             ast::Expression::IfElse(condition, if_true, if_false) => {
                 let mut obj = self.expression(*condition)?;
-                if environment::object::is_truthy(&obj) {
+                if obj.truth() {
                     obj = self.statement(*if_true)?;
                 } else {
                     obj = self.statement(*if_false)?;
@@ -134,6 +135,8 @@ impl Evaluator {
 
     fn not(rhs: Object) -> Result<Object> {
         use Object::*;
+
+        // TODO: Refactor this to use Object::is_truthy
         match rhs {
             TRUE => Ok(FALSE),
             FALSE => Ok(TRUE),
@@ -144,6 +147,7 @@ impl Evaluator {
                     Ok(FALSE)
                 }
             }
+            String_(value) => Ok(Object::Bool(value.is_empty())),
             Return(obj) => Err(Error::UnexpectedReturn(*obj)),
             NOOP => panic!("Nothing should have the value NOOP"),
             Function(_, _, _) => panic!("Not of a function doesn't mean anything."),
@@ -159,30 +163,26 @@ impl Evaluator {
 
     fn infix(op: ast::InfixOperator, lhs: Object, rhs: Object) -> Result<Object> {
         use ast::InfixOperator::*;
-        match op {
-            Equal => Ok(Object::Bool(lhs == rhs)),
-            NotEqual => Ok(Object::Bool(lhs != rhs)),
-            Call => panic!("This path should never be executed."),
-            _ => Ok(Evaluator::infix_math(op, lhs, rhs)?),
+
+        match (&op, &lhs, &rhs) {
+            (_, Object::Int(l), Object::Int(r)) => Ok(Self::eval_infix_math(op, l, r)),
+            (Equal, Object::Bool(l), Object::Bool(r)) => Ok((l == r).into()),
+            (NotEqual, Object::Bool(l), Object::Bool(r)) => Ok((l != r).into()),
+            (Plus, Object::String_(l), Object::String_(r)) => Ok(format!("{l}{r}").into()),
+            _ => Err(Error::InfixTypeMismatch(op, lhs, rhs)),
         }
     }
 
-    fn infix_math(op: ast::InfixOperator, lhs_obj: Object, rhs_obj: Object) -> Result<Object> {
-        if let Some((lhs, rhs)) =
-            environment::object::get_infix_ints(lhs_obj.clone(), rhs_obj.clone())
-        {
-            use ast::InfixOperator::*;
-            match op {
-                Plus => Ok(Object::Int(lhs + rhs)),
-                Minus => Ok(Object::Int(lhs - rhs)),
-                Multiply => Ok(Object::Int(lhs * rhs)),
-                Divide => Ok(Object::Int(lhs / rhs)),
-                LessThan => Ok(Object::Bool(lhs < rhs)),
-                GreaterThan => Ok(Object::Bool(lhs > rhs)),
-                _ => panic!("This path should never be executed."),
-            }
-        } else {
-            Err(Error::InfixTypeMismatch(op, lhs_obj, rhs_obj))
+    fn eval_infix_math(op: ast::InfixOperator, lhs: &i128, rhs: &i128) -> Object {
+        use ast::InfixOperator::*;
+        match op {
+            Plus => (lhs + rhs).into(),
+            Minus => (lhs - rhs).into(),
+            Multiply => (lhs * rhs).into(),
+            Divide => (lhs / rhs).into(),
+            LessThan => (lhs < rhs).into(),
+            GreaterThan => (lhs > rhs).into(),
+            _ => panic!("This path should never be executed."),
         }
     }
 }

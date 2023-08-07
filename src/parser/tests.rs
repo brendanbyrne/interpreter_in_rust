@@ -503,6 +503,16 @@ fn call_expression() {
     }
 }
 
+#[test]
+fn string() {
+    let mut program = parse_program("\"hello world\"").unwrap();
+    assert_eq!(program.statements.len(), 1);
+
+    let expected_string = ast::Expression::String_("hello world".to_owned());
+
+    assert_eq!(get_expression(&mut program), expected_string);
+}
+
 fn get_expression(program: &mut Program) -> ast::Expression {
     if let ast::Statement::Expression(expression) = program.statements.pop().unwrap() {
         return expression;

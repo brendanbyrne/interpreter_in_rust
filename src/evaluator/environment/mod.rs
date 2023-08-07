@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::evaluator::error::{Error, Result};
-pub use object::{Object, FALSE, NOOP, TRUE};
+pub use object::{Object, Truth, FALSE, NOOP, TRUE};
 
 #[cfg(test)]
 mod tests;

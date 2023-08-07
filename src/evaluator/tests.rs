@@ -194,6 +194,14 @@ fn eval() {
             expected_obj: Object::Int(20),
         },
         TestCase {
+            input: "\"hello world\"",
+            expected_obj: Object::String_("hello world".to_owned()),
+        },
+        TestCase {
+            input: "\"hello \" + \"world\"",
+            expected_obj: Object::String_("hello world".to_owned()),
+        },
+        TestCase {
             input: "
             let new_adder = fn(x) { fn(y) { x + y; }; };
             let add_two = new_adder(2);
