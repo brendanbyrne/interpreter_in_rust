@@ -7,6 +7,7 @@ pub enum Token {
     Eof,
     Ident(String),
     Int(String),
+    String_(String),
     Assign,
     Plus,
     Comma,

@@ -62,6 +62,7 @@ impl fmt::Display for Statement {
 pub enum Expression {
     Identifier(String),
     Int(i128),
+    String_(String),
     Prefix(PrefixOperator, Box<Expression>),
     Infix(InfixOperator, Box<Expression>, Box<Expression>),
     Bool(bool),
@@ -77,6 +78,7 @@ impl fmt::Display for Expression {
         let expression = match self {
             Identifier(name) => name.clone(),
             Int(value) => format!("{}", value),
+            String_(value) => value.clone(),
             Prefix(op, expression) => format!("({}{})", op, *expression),
             Infix(op, lhs, rhs) => format!("({} {} {})", *lhs, op, *rhs),
             Bool(value) => format!("{}", value),

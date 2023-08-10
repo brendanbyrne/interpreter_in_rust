@@ -1,10 +1,12 @@
 ///! The lexer processes a stream of characters and turns them into tokens.
 mod token;
 
-pub use token::Token;
-
 #[cfg(test)]
 mod tests;
+
+pub use token::Token;
+
+const NULL: char = '\u{0}';
 
 pub struct Lexer {
     input: Vec<char>,
@@ -13,18 +15,16 @@ pub struct Lexer {
     pub ch: char,
 }
 
-const NULL: char = '\u{0}';
-
 fn is_letter(ch: char) -> bool {
-    ('a'..='z').contains(&ch) || ('A'..='Z').contains(&ch) || ch == '_'
+    matches!(ch, 'a'..='z' | 'A'..='Z' | '_')
 }
 
 fn is_digit(ch: char) -> bool {
-    ('0'..='9').contains(&ch)
+    matches!(ch, '0'..='9')
 }
 
 fn is_whitespace(ch: char) -> bool {
-    ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+    matches!(ch, ' ' | '\t' | '\n' | '\r')
 }
 
 impl Lexer {
@@ -37,51 +37,6 @@ impl Lexer {
         };
         lexer.read_char();
         lexer
-    }
-
-    fn read_identifier(&mut self) -> String {
-        let position = self.position;
-        while is_letter(self.ch) {
-            self.read_char();
-        }
-        self.input[position..self.position]
-            .to_vec()
-            .iter()
-            .collect()
-    }
-
-    fn read_int(&mut self) -> String {
-        let position = self.position;
-        while is_digit(self.ch) {
-            self.read_char();
-        }
-        self.input[position..self.position]
-            .to_vec()
-            .iter()
-            .collect()
-    }
-
-    fn skip_whitespace(&mut self) {
-        while is_whitespace(self.ch) {
-            self.read_char();
-        }
-    }
-
-    fn peek_char(&self) -> char {
-        if self.read_position >= self.input.len() {
-            return NULL;
-        }
-        self.input[self.read_position]
-    }
-
-    fn read_char(&mut self) {
-        if self.read_position >= self.input.len() {
-            self.ch = NULL;
-        } else {
-            self.ch = self.input[self.read_position];
-        }
-        self.position = self.read_position;
-        self.read_position += 1;
     }
 
     pub fn next_token(&mut self) -> Token {
@@ -142,6 +97,9 @@ impl Lexer {
             '>' => {
                 tok = Token::GreaterThan;
             }
+            '\"' => {
+                tok = Token::String_(self.read_string());
+            }
             NULL => {
                 tok = Token::Eof;
             }
@@ -160,5 +118,63 @@ impl Lexer {
 
         self.read_char();
         tok
+    }
+
+    fn read_identifier(&mut self) -> String {
+        let position = self.position;
+        while is_letter(self.ch) {
+            self.read_char();
+        }
+        self.input[position..self.position]
+            .to_vec()
+            .iter()
+            .collect()
+    }
+
+    fn read_int(&mut self) -> String {
+        let position = self.position;
+        while is_digit(self.ch) {
+            self.read_char();
+        }
+        self.input[position..self.position]
+            .to_vec()
+            .iter()
+            .collect()
+    }
+
+    fn read_string(&mut self) -> String {
+        let begin = self.position + 1;
+
+        loop {
+            self.read_char();
+            if self.ch == '"' || self.ch == char::from_u32(0).unwrap() {
+                break;
+            }
+        }
+
+        self.input[begin..self.position].iter().collect::<String>()
+    }
+
+    fn skip_whitespace(&mut self) {
+        while is_whitespace(self.ch) {
+            self.read_char();
+        }
+    }
+
+    fn peek_char(&self) -> char {
+        if self.read_position >= self.input.len() {
+            return NULL;
+        }
+        self.input[self.read_position]
+    }
+
+    fn read_char(&mut self) {
+        if self.read_position >= self.input.len() {
+            self.ch = NULL;
+        } else {
+            self.ch = self.input[self.read_position];
+        }
+        self.position = self.read_position;
+        self.read_position += 1;
     }
 }

@@ -173,6 +173,7 @@ impl Parser {
         match &self.cur_token {
             Token::Ident(name) => Ok(ast::Expression::Identifier(name.clone())),
             Token::Int(value) => self.parse_prefix_int(value.to_string()),
+            Token::String_(value) => Ok(ast::Expression::String_(value.clone())),
             Token::Bang => self.parse_prefix_expression(ast::PrefixOperator::Not),
             Token::Minus => self.parse_prefix_expression(ast::PrefixOperator::Negate),
             Token::True => Ok(ast::Expression::Bool(true)),
